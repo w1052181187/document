@@ -1,0 +1,358 @@
+<template>
+  <div class="cloudcontent" id="cloud_processedit">
+    <div class="main">
+      <el-form :model="updateForm" :rules="rules" ref="updateForm" :validate-on-rule-change="true">
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="项目编号：">
+              <el-input v-model="bidSection.tenderProjectCode" disabled></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="项目名称：">
+              <el-input v-model="bidSection.tenderProjectName" disabled></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="标段编号：">
+              <el-input v-model="bidSection.bidSectionCode" disabled></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="标段名称：">
+              <el-input v-model="bidSection.bidSectionName" disabled></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="24">
+            <el-form-item label="附件："  class="bitianicon">
+              <upload-file @uploadSuccess="uploadOtherSuccess" @deleteSuccess="deleteSuccess"
+                           :fileArrays="updateForm.fileInformationList"
+                           fileType="9"
+                           isImage="0">
+              </upload-file>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="24">
+            <el-form-item label="中标候选人名单：" prop="winCandidateList">
+              <el-button class="addbtn" @click="handleAdd">+ 新增</el-button>
+              <el-table
+                :data="updateForm.winCandidateList"
+                border
+                style="width: 100%;margin-top: 12px" header-cell-class-name="tableheader">
+                <el-table-column
+                  prop="bidderName"
+                  label="中标候选人名称"
+                  show-overflow-tooltip>
+                </el-table-column>
+                <el-table-column
+                  prop="bidPrice"
+                  label="中标价格（元）">
+                </el-table-column>
+                <el-table-column
+                  prop="rank"
+                  label="中标候选人排名">
+                </el-table-column>
+                <el-table-column
+                  label="操作" align="center" width="260">
+                  <template slot-scope="scope">
+                    <el-button type="text" size="small" @click="moveBtn(scope.$index, scope.row, 1)"
+                               :disabled="scope.$index === 0"
+                               :class="scope.$index === 0 ? 'move_btn' : ''">上移</el-button>
+                    <el-button type="text" size="small" @click="moveBtn(scope.$index, scope.row, 2)"
+                               :disabled="scope.$index === updateForm.winCandidateList.length - 1"
+                               :class="scope.$index === updateForm.winCandidateList.length - 1 ? 'move_btn' : ''">下移</el-button>
+                    <el-button type="text" size="small" @click="handleEdit(scope)">编辑</el-button>
+                    <el-button type="text" size="small" @click="handleDel(scope.$index)">删除</el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="24" class="ueditor_box">
+            <el-form-item label="评审内容：">
+              <editor ref="ueditorContent" class="ueditor" :editread="editread"></editor>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-form-item class="submit-radio">
+          <el-button type="primary" @click="submit('updateForm', 0)" :loading="isSaving">保存</el-button>
+          <el-button type="primary" class="submitBtn" @click="submit('updateForm', 1)" :loading="isSubmiting">提交</el-button>
+          <el-button class="cancal" @click="close">取消</el-button>
+        </el-form-item>
+      </el-form>
+      <submitApproveDialog :flowStatus="flowStatus" :tenderSystemCode="updateForm.tenderSystemCode" :showVisible="approveDialogVisable" @confirmSubmit="confirmSubmit" @handleCancel="cancelApprove"></submitApproveDialog>
+      <el-dialog
+        :title="isEdit ? '修改' : '新增'"
+        :before-close="handleCancel"
+        :visible.sync="dialogVisible"
+        width="30%">
+        <el-form :model="dialogForm" :rules="dialogRules" ref="dialogForm" label-width="140px">
+          <el-form-item label="中标候选人：" :prop="isEdit ?  '' : 'bidderName'">
+            <el-input v-model="dialogForm.bidderName" readonly>
+              <el-button type="primary" slot="append" size="mini" @click="btnChoose">选择</el-button>
+            </el-input>
+          </el-form-item>
+          <el-form-item label="中标价格：" prop="bidPrice">
+            <el-input v-model="dialogForm.bidPrice" placeholder="请输入中标价格"></el-input>
+          </el-form-item>
+        </el-form>
+        <div class="submit-radio">
+          <el-button @click="handleCancel">取 消</el-button>
+          <el-button type="primary" @click="handleConfirm">确 定</el-button>
+        </div>
+      </el-dialog>
+      <bidder-dialog :tenderSystemCode="updateForm.tenderSystemCode" :excludeNames="excludeBidderNames" :showVisible="showBidderVisible" @selected="selectedBidder" @showDialog="showBidderDialog"></bidder-dialog>
+    </div>
+  </div>
+</template>
+<script>
+import editor from '@/components/ueditor/ueditor.vue'
+import uploadFile from '@/components/upload/publicFileUpload'
+import {documentInfo} from '@/api/project'
+import submitApproveDialog from '@/pages/project/commonCompents/submitApproveDialog'
+import {validMoney} from '@/assets/js/validate'
+import bidderDialog from '@/pages/project/projectProcess/common/bidder_dialog.vue'
+export default {
+  components: {
+    editor,
+    uploadFile,
+    submitApproveDialog,
+    bidderDialog
+  },
+  data () {
+    return {
+      flowStatus: 15,
+      isSaving: false,
+      isSubmiting: false,
+      updateForm: {
+        fileInformationList: [],
+        winCandidateList: []
+      },
+      rules: {
+        winCandidateList: {type: 'array', required: true, message: '请添加中标候选人', trigger: ['blur', 'change']}
+      },
+      tableData: [
+        {
+          bidderName: '名称'
+        }
+      ],
+      // 富文本
+      editread: false,
+      bidSection: {},
+      approveDialogVisable: false,
+      dialogVisible: false,
+      isEdit: false,
+      dialogForm: {
+        bidderName: '',
+        bidPrice: ''
+      },
+      dialogRules: {
+        bidderName: {required: true, message: '请输入中标候选人', trigger: ['blur', 'change']},
+        bidPrice: [
+          {required: true, message: '请输入中标价格', trigger: ['blur']},
+          {validator: validMoney, trigger: ['change']}
+        ]
+      },
+      curIndex: 0,
+      showBidderVisible: false,
+      excludeBidderNames: []
+    }
+  },
+  methods: {
+    // 上传附件
+    uploadOtherSuccess (file) {
+      this.updateForm.fileInformationList.push(file)
+    },
+    deleteSuccess (fileId) {
+      this.updateForm.fileInformationList = this.updateForm.fileInformationList.filter(item => item.relativePath !== fileId)
+    },
+    // 提交/保存
+    submit (form, status) {
+      if (this.updateForm.fileInformationList.length < 1) {
+        this.$message({
+          message: '请上传附件！',
+          type: 'warning'
+        })
+        return
+      }
+      this.$refs[form].validate((vaild) => {
+        if (vaild) {
+          if (Object.is(status, 0)) {
+            this.approveDialogVisable = false
+            this.submitData(status)
+          } else {
+            this.approveDialogVisable = true
+          }
+        } else {
+          return false
+        }
+      })
+    },
+    submitData (status) {
+      let msg = Object.is(status, 1) ? '提交后数据将锁定，不允许修改，确认要提交吗?' : '确定要保存吗?'
+      this.$confirm(msg, '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning',
+        beforeClose: (action, instance, done) => {
+          done()
+        }
+      }).then(() => {
+        if (Object.is(status, 0)) {
+          this.isSaving = true
+        } else if (Object.is(status, 1)) {
+          this.isSubmiting = true
+          this.updateForm.auditStatus = 4
+          this.updateForm.submitTime = new Date().getTime()
+        }
+        this.updateForm.content = this.$refs.ueditorContent.getContent()
+        this.updateForm.fileInformationList.map(item => {
+          item.objectId = null
+        })
+        documentInfo.update(this.updateForm).then((res) => {
+          this.isSaving = false
+          this.isSubmiting = false
+          if (res.data.resCode === '0000') {
+            this.close()
+          }
+        })
+      }).catch(() => {
+        this.isSaving = false
+        this.isSubmiting = false
+        return false
+      })
+    },
+    // 确认提交
+    confirmSubmit (record) {
+      this.updateForm.approvalFlowExecutorList = []
+      this.updateForm.manualAdditionList = []
+      for (let i = 0; i < record.approveList.length; i++) {
+        let obj = {
+          usersId: record.approveList[i].objectId,
+          flowLevel: i + 1
+        }
+        this.updateForm.approvalFlowExecutorList.push(obj)
+      }
+      if (record.noticeList && record.noticeList.length > 0) {
+        this.updateForm.manualAdditionList = record.noticeList
+      }
+      this.submitData(1)
+    },
+    cancelApprove () {
+      this.approveDialogVisable = false
+    },
+    // 取消
+    close () {
+      this.$store.commit('delete_tabs', this.$route.fullPath)
+      this.$router.go(-1)
+    },
+    getDocumentInfo () {
+      documentInfo.getById(this.$route.query.objectId).then(res => {
+        this.updateForm = res.data.documentInfo
+        if (this.updateForm.bidSection) {
+          this.bidSection = this.updateForm.bidSection
+        }
+        console.log(this.updateForm)
+        this.updateForm.fileInformationList = res.data.documentInfo.fileInformationList
+        this.$refs.ueditorContent.setContent(this.updateForm.content)
+      })
+    },
+    moveBtn (index, row, status) {
+      switch (status) {
+        case 1:
+          // 上移
+          let lastRank = this.updateForm.winCandidateList[index - 1].rank
+          this.updateForm.winCandidateList[index - 1].rank = this.updateForm.winCandidateList[index].rank
+          this.updateForm.winCandidateList[index].rank = lastRank
+          break
+        case 2:
+          // 下移
+          let nextRank = this.updateForm.winCandidateList[index + 1].rank
+          this.updateForm.winCandidateList[index + 1].rank = this.updateForm.winCandidateList[index].rank
+          this.updateForm.winCandidateList[index].rank = nextRank
+          break
+      }
+      this.updateForm.winCandidateList.sort((item, nextItem) => item.rank - nextItem.rank)
+    },
+    handleAdd () {
+      this.isEdit = false
+      this.dialogVisible = true
+    },
+    handleEdit (scope) {
+      this.dialogForm = Object.assign({}, scope.row)
+      this.dialogVisible = true
+      this.isEdit = true
+    },
+    handleDel (index) {
+      this.updateForm.winCandidateList.splice(index, 1)
+      this.excludeBidderNames = []
+      this.updateForm.winCandidateList.map((item, index) => {
+        item.rank = index + 1
+        this.excludeBidderNames.push(item.bidderName)
+        return item
+      })
+    },
+    handleCancel () {
+      this.dialogVisible = false
+      this.dialogForm = {}
+      this.$refs['dialogForm'].resetFields()
+    },
+    handleConfirm () {
+      this.$refs['dialogForm'].validate((vaild) => {
+        if (vaild) {
+          let object = Object.assign({}, this.dialogForm)
+          if (this.isEdit) {
+            this.updateForm.winCandidateList.splice(this.curIndex, 1, object)
+          } else {
+            if (this.updateForm.winCandidateList.length > 0) {
+              object.rank = this.updateForm.winCandidateList[this.updateForm.winCandidateList.length - 1].rank + 1
+            } else {
+              object.rank = 1
+            }
+            this.updateForm.winCandidateList.push(object)
+          }
+          this.handleCancel()
+        } else {
+          return false
+        }
+      })
+    },
+    // 选择投标人
+    btnChoose () {
+      this.showBidderVisible = true
+    },
+    // 选择投标人弹窗 打开/关闭
+    showBidderDialog () {
+      this.showBidderVisible = !this.showBidderVisible
+    },
+    // 已选择投标人信息
+    selectedBidder (obj) {
+      this.dialogForm.bidderId = obj.objectId
+      this.dialogForm.bidderName = obj.name
+      this.dialogForm.contactName = obj.contactName
+      this.dialogForm.contactNumber = obj.contactNumber
+      this.dialogForm.tenderSystemCode = this.updateForm.tenderSystemCode
+      this.dialogForm.sectionSystemCode = this.updateForm.sectionSystemCode
+    }
+  },
+  watch: {
+    '$route': 'getDocumentInfo'
+  },
+  mounted () {
+    this.getDocumentInfo()
+  }
+}
+</script>
+<style lang="less">
+  .move_btn {
+    color: #999!important;
+  }
+</style>

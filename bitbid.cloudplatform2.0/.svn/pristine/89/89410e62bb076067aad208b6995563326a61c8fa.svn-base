@@ -1,0 +1,459 @@
+<template>
+  <div class="cloudcontent" id="cloud_processtype">
+    <!--搜索 & 添加按钮-->
+    <div class="topmain">
+      <div class="seacher_box advancedsearch_box">
+        <el-row>
+          <span>项目名称：</span>
+          <el-input placeholder="请输入项目名称关键字" v-model="searchForm.projectNameLike"></el-input>
+          <span>档案编号：</span>
+          <el-input placeholder="请输入档案编号关键字" v-model="searchForm.projectCodeLike"></el-input>
+        </el-row>
+        <span>档案状态：</span>
+        <span :class="isStatusSelectAll ? 'all selectall': 'all'" @click="conditionCancel('档案状态')">不限</span>
+        <el-radio-group v-model="searchForm.status" @change="conditionSelect($event, '档案状态')">
+          <el-radio v-for="item in statusOptions" :label="item.code" :key="item.code" :checked="statusFlag">{{item.name}}</el-radio>
+        </el-radio-group>
+        <div class="handBtn" v-if="!showselect">
+          <el-button type="primary" @click="search">查询</el-button>
+          <el-button @click="reset">重置</el-button>
+          <span @click="showselect = true" class="more">展开搜索条件</span>
+        </div>
+        <div class="advancedsearch" v-if="showselect">
+          <el-form :model="searchForm" ref="searchForm" label-width="82px" :validate-on-rule-change="true">
+            <el-row>
+              <el-form-item label="借阅时间：" style="float: left; margin-right: 20px;">
+                <span :class="isBorrowTimeSelectAll ? 'all selectall': 'all'" @click="conditionCancel('借阅时间')">不限</span>
+                <el-radio-group v-model="searchForm.borrowTimeType" @change="conditionSelect($event, '借阅时间')">
+                  <el-radio v-for="item in borrowTimeOption" :label="item.code" :key="item.code" :checked="borrowTimeFlag">{{item.name}}</el-radio>
+                </el-radio-group>
+              </el-form-item>
+              <el-date-picker
+                v-model="searchForm.borrowCustomTime"
+                v-if="searchForm.borrowTimeType === 6"
+                type="daterange"
+                range-separator="至"
+                start-placeholder="开始日期"
+                end-placeholder="结束日期"
+                value-format="yyyy-MM-dd HH:mm:ss"
+                :default-time="['00:00:00', '23:59:59']">
+              </el-date-picker>
+            </el-row>
+            <el-row>
+              <el-form-item label="归还时间：" style="float: left; margin-right: 20px;">
+                <span :class="isReturnTimeSelectAll ? 'all selectall': 'all'" @click="conditionCancel('归还时间')">不限</span>
+                <el-radio-group v-model="searchForm.returnTimeType" @change="conditionSelect($event, '归还时间')">
+                  <el-radio v-for="item in borrowTimeOption" :label="item.code" :key="item.code" :checked="returnTimeFlag">{{item.name}}</el-radio>
+                </el-radio-group>
+              </el-form-item>
+              <el-date-picker
+                v-model="searchForm.returnCustomTime"
+                v-if="searchForm.returnTimeType === 6"
+                type="daterange"
+                range-separator="至"
+                start-placeholder="开始日期"
+                end-placeholder="结束日期"
+                value-format="yyyy-MM-dd HH:mm:ss"
+                :default-time="['00:00:00', '23:59:59']">
+              </el-date-picker>
+            </el-row>
+            <el-row>
+              <el-col :span="9" class="bigWidth">
+                <el-form-item label="所属部门：">
+                  <el-input class="deptInput" v-model="searchForm.departmentName" auto-complete="off" placeholder="请选择" readonly="readonly" clearable @click.native="showDepartmentTree">
+                    <i slot="suffix" class="el-input__icon el-icon-arrow-down"></i>
+                  </el-input>
+                  <tree-options :initData="searchForm.departmentId" @selectSuccess="selectedDepatment" :isShowOptions="isShowDptTree" :startWithRootFlag = "true"></tree-options>
+                </el-form-item>
+              </el-col>
+              <el-col :span="9" class="bigWidth">
+                <el-form-item label="借阅人：">
+                  <el-input v-model="searchForm.lastTransferName" readonly placeholder="请选择">
+                    <el-button slot="append" icon="el-icon-search" @click="showAdminDialog"></el-button>
+                  </el-input>
+                  <select-user-dialog :isComponyId="1" :showVisible="showAdminVisible" @selected="selectedAdmin" @showDialog="showAdminDialog"></select-user-dialog>
+                </el-form-item>
+              </el-col>
+            </el-row>
+          </el-form >
+          <div class="handBtn">
+            <el-button  type="primary" class="search" @click="search">查询</el-button>
+            <el-button  @click="reset">重置</el-button>
+            <span @click="showselect = false" class="more">收起搜索条件</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="main">
+      <el-table
+        :data="tableData"
+        border
+        @cell-click="cellClick"
+        header-cell-class-name="tableheader">
+        <el-table-column
+          type="index"
+          label="序号"
+          align="center"
+          :index="indexMethod"
+          width="80">
+        </el-table-column>
+        <el-table-column
+          prop="tenderProjectName"
+          label="项目名称"
+          class-name="pointer"
+          show-overflow-tooltip>
+          <template slot-scope="scope">
+            <div class="tender-project-name">
+              <img src="../../../assets/lishi_b.png" v-if="scope.row.tenderProject && Number(scope.row.tenderProject.dataSource) === 1" title="历史项目">{{scope.row.tenderProjectName}}
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="tenderProjectCode"
+          label="档案编号"
+          show-overflow-tooltip>
+        </el-table-column>
+        <el-table-column
+          prop="bidderName"
+          label="借阅部门"
+          align="center"
+          width="200"
+          show-overflow-tooltip>
+        </el-table-column>
+        <el-table-column
+          prop="bidderName"
+          label="借阅人"
+          align="center"
+          width="120"
+          show-overflow-tooltip>
+        </el-table-column>
+        <el-table-column
+          prop="projectLeader"
+          label="借阅时长（天）"
+          align="center"
+          width="120"
+          show-overflow-tooltip>
+        </el-table-column>
+        <el-table-column
+          prop="transferStatus"
+          label="档案状态"
+          width="120">
+          <template slot-scope="scope">
+            <span v-if="scope.row.status === 0">待借出</span>
+            <span v-if="scope.row.status === 1">已借出</span>
+            <span v-if="scope.row.status === 3">已归还</span>
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="lastkTransferTime"
+          label="借出时间"
+          width="120"
+          align="center"
+          :formatter="simpleFormatData"
+          show-overflow-tooltip>
+        </el-table-column>
+        <el-table-column
+          prop="lastkTransferTime"
+          label="归还时间"
+          width="120"
+          align="center"
+          :formatter="simpleFormatData"
+          show-overflow-tooltip>
+        </el-table-column>
+        <el-table-column
+          label="操作" align="center" width="100">
+          <template slot-scope="scope">
+            <el-button type="text" size="small" @click="handleBorrow(scope.row, 'borrow')">借出</el-button>
+            <el-button type="text" size="small" @click="handleBorrow(scope.row, 'return')">归还</el-button>
+            <el-button type="text" size="small" @click="handleDetail(scope.row)">查看</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <!--分页-->
+      <el-pagination
+        background
+        layout="prev, pager, next"
+        :total="total"
+        :page-size='pageSize'
+        :current-page.sync="currentPage"
+        @current-change="handleCurrentChange">
+      </el-pagination>
+      <!--分页-->
+    </div>
+  </div>
+</template>
+
+<script>
+import {archivesProject} from '@/api/archives'
+import selectUserDialog from '@/pages/system/users/search_user_radio'
+import TreeOptions from '@/pages/system/department/tree/tree_options'
+
+export default {
+  components: {
+    selectUserDialog,
+    TreeOptions
+  },
+  name: '',
+  data () {
+    return {
+      searchForm: {
+        status: '',
+        borrowTimeType: '',
+        returnTimeType: ''
+      },
+      type: '',
+      searchTitle: '移交人选择',
+      // 当前页
+      currentPage: 1,
+      pageNo: 0,
+      total: 0, // 总条数
+      pageSize: 10, // 每页展示条数
+      tableData: [],
+      // 档案状态
+      isStatusSelectAll: true,
+      statusFlag: true,
+      statusOptions: [
+        {
+          code: 0,
+          name: '待借出'
+        }, {
+          code: 1,
+          name: '已借出'
+        },
+        {
+          code: 2,
+          name: '已退还'
+        }
+      ],
+      // 借阅时间
+      isBorrowTimeSelectAll: true,
+      isReturnTimeSelectAll: true,
+      borrowTimeOption: [
+        {
+          name: '近一周',
+          code: 1
+        },
+        {
+          name: '近一月',
+          code: 2
+        },
+        {
+          name: '近三月',
+          code: 3
+        },
+        {
+          name: '近半年',
+          code: 4
+        },
+        {
+          name: '近一年',
+          code: 5
+        },
+        {
+          name: '自定义',
+          code: 6
+        }
+      ],
+      borrowTimeFlag: true,
+      returnTimeFlag: true,
+      showselect: false, // 高级搜索显示隐藏
+      // 是否展示借阅人
+      showAdminVisible: false,
+      checkedRoleId: '',
+      // 所属部门
+      // 是否展示部门树
+      isShowDptTree: false
+    }
+  },
+  methods: {
+    cellClick (row, column, cell, event) {
+      if (column.label === '项目编号' || column.label === '项目名称' || column.label === '档案号') {
+        this.handleDetail(row)
+      }
+    },
+    // 高级搜索-搜索条件选择
+    conditionSelect (value, label) {
+      switch (label) {
+        case '档案状态':
+          this.searchForm.status = value
+          this.isStatusSelectAll = false
+          break
+        case '借阅时间':
+          this.searchForm.borrowTimeType = value
+          this.isBorrowTimeSelectAll = false
+          break
+        case '归还时间':
+          this.searchForm.returnTimeType = value
+          this.isReturnTimeSelectAll = false
+          break
+        default:
+          break
+      }
+    },
+    // 高级搜索-取消条件
+    conditionCancel (label) {
+      switch (label) {
+        case '档案状态':
+          if (!this.isStatusSelectAll) {
+            this.statusFlag = false
+            this.searchForm.status = null
+            this.isStatusSelectAll = true
+          }
+          break
+        case '借阅时间':
+          if (!this.isBorrowTimeSelectAll) {
+            this.borrowTimeFlag = false
+            this.searchForm.borrowTimeType = null
+            this.isBorrowTimeSelectAll = true
+          }
+          break
+        case '归还时间':
+          if (!this.isReturnTimeSelectAll) {
+            this.returnTimeFlag = false
+            this.searchForm.returnTimeType = null
+            this.isReturnTimeSelectAll = true
+          }
+          break
+        default:
+          break
+      }
+    },
+    // 管理员打开
+    showAdminDialog () {
+      this.showAdminVisible = !this.showAdminVisible
+    },
+    // 选择管理员
+    selectedAdmin (obj) {
+      this.$set(this.searchForm, 'lastTransferName', obj.name)
+      this.$set(this.searchForm, 'lastTransferId', obj.objectId)
+      this.checkedRoleId = obj.objectId
+    },
+    // 部门树展开/关闭
+    showDepartmentTree () {
+      this.isShowDptTree = !this.isShowDptTree
+    },
+    // 选择部门
+    selectedDepatment (deptTreeNode) {
+      this.searchForm.departmentName = deptTreeNode.label
+      this.searchForm.departmentId = deptTreeNode.id
+      this.isShowDptTree = false
+    },
+    indexMethod (index) {
+      return index + (this.currentPage - 1) * 10 + 1
+    },
+    // 普通格式化数据，空的时候展示"---"
+    simpleFormatData (row, col, cellValue) {
+      return cellValue || '---'
+    },
+    // 重置
+    reset () {
+      this.pageNo = 0
+      this.currentPage = 1
+      this.searchForm = {}
+      this.getData()
+    },
+    // 搜索
+    search () {
+      this.pageNo = 0
+      this.currentPage = 1
+      this.getData()
+    },
+    // 获取列表数据
+    getData () {
+      this.searchForm.pageSize = this.pageSize
+      this.searchForm.pageNo = this.pageNo
+      this.searchForm.enterpriseId = this.$store.getters.authUser.enterpriseId
+      // if (this.searchForm.borrowTimeType === 6 && this.searchForm.borrowCustomTime) {
+      //   this.searchForm.borrowStartTime = this.searchForm.borrowCustomTime[0]
+      //   this.searchForm.borrowEndTime = this.searchForm.borrowCustomTime[1]
+      // } else {
+      //   this.searchForm.borrowStartTime = null
+      //   this.searchForm.borrowEndTime = null
+      // }
+      // if (this.searchForm.returnTimeType === 6 && this.searchForm.returnCustomTime) {
+      //   this.searchForm.returnStartTime = this.searchForm.returnCustomTime[0]
+      //   this.searchForm.returnEndTime = this.searchForm.returnCustomTime[1]
+      // } else {
+      //   this.searchForm.returnStartTime = null
+      //   this.searchForm.returnEndTime = null
+      // }
+      archivesProject.getArchivesProjectList(this.searchForm).then((res) => {
+        if (res.data.resCode === '0000') {
+          this.tableData = res.data.archivesProjectList.list
+          this.total = res.data.archivesProjectList.total
+        }
+      })
+    },
+    // 分页
+    handleCurrentChange (nowNum) {
+      this.currentPage = nowNum
+      this.pageNo = (nowNum - 1) * this.pageSize
+      this.getData(parseInt(this.pageNo), parseInt(this.pageSize))
+    },
+    handleDetail (row) {
+      this.$router.push({path: `/archives/borrow/detail/${row.objectId}`})
+    },
+    handleBorrow (row, type) {
+      this.$confirm(type === 'borrow' ? '您确定要将该档案借出吗' : '请再次确认该档案已经归还?', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        switch (type) {
+          case 'borrow':
+            break
+          case 'return':
+            break
+        }
+      }).catch(() => {
+        return false
+      })
+    },
+    init () {
+      this.getData()
+    }
+  },
+  watch: {
+    '$route': 'init'
+  },
+  mounted () {
+    this.init()
+  }
+}
+</script>
+
+<style scoped>
+  .addbutton{
+    color: #fff;
+    background-color: #409EFF;
+    border-color: #409EFF;
+    float: right;
+    margin-left: 26px;
+  }
+  .listbutton{
+    color: #fff;
+    background-color: #fe8d24;
+    border-color: #fe8d24;
+    float: right;
+    margin-left: 10px;
+  }
+  .listbutton img {
+    width: 13px;
+    height: 12px;
+    margin-right: 10px;
+    vertical-align: middle;
+  }
+  .listbutton span{
+    vertical-align: middle;
+  }
+  .hint {
+    float: right;
+    height: 40px;
+    line-height: 40px;
+    color: #333;
+    margin-bottom: 10px;
+  }
+  .seacher_box .el-row{
+    margin-bottom: 12px;
+  }
+</style>

@@ -1,0 +1,142 @@
+<template>
+  <div>
+    <el-dialog
+      title="审批"
+      :before-close="handleCancel"
+      :visible.sync="showVisible"
+      width="30%">
+      <el-form :model="dialogForm" :rules="dialogRules" ref="dialogForm" label-width="140px">
+        <el-form-item label="投标人：">
+          <el-input v-model="bidderName" disabled></el-input>
+        </el-form-item>
+        <el-form-item label="是否缴费："  prop="paymentStatus">
+          <el-select v-model="dialogForm.paymentStatus" placeholder="请选择">
+            <el-option
+              v-for="item in options"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value">
+            </el-option>
+          </el-select>
+        </el-form-item>
+        <template v-if="Number(dialogForm.paymentStatus) === 1">
+          <el-form-item label="缴费方式："  prop="paymentMethod">
+            <el-select v-model="dialogForm.paymentMethod" placeholder="请选择">
+              <el-option
+                v-for="item in methodOptions"
+                :key="item.value"
+                :label="item.label"
+                :value="item.value">
+              </el-option>
+            </el-select>
+          </el-form-item>
+          <el-form-item label="缴费金额：" prop="amount">
+            <el-input v-model="dialogForm.amount" placeholder="请输入缴费金额"></el-input>
+          </el-form-item>
+          <el-form-item label="缴费时间：" prop="paymentTime">
+            <el-date-picker
+              v-model="dialogForm.paymentTime"
+              type="datetime"
+              value-format="yyyy-MM-dd HH:mm:ss">
+            </el-date-picker>
+          </el-form-item>
+        </template>
+      </el-form>
+      <div class="submit-radio">
+        <el-button @click="handleCancel">取 消</el-button>
+        <el-button type="primary" @click="handleConfirm">确 定</el-button>
+      </div>
+    </el-dialog>
+  </div>
+</template>
+<script>
+import {validMoney} from '@/assets/js/validate'
+export default {
+  data () {
+    return {
+      dialogForm: {
+        paymentStatus: '',
+        paymentMethod: '',
+        amount: '',
+        paymentTime: ''
+      },
+      dialogRules: {
+        paymentStatus: {required: true, message: '请选择是否缴费', trigger: ['blur', 'change']},
+        paymentMethod: {required: true, message: '请选择缴费方式', trigger: ['blur', 'change']},
+        amount: [
+          {required: true, message: '请输入缴费金额', trigger: ['blur']},
+          {validator: validMoney, trigger: ['change']}
+        ],
+        paymentTime: {required: true, message: '请选择缴费时间', trigger: ['blur', 'change']}
+      },
+      dialogVisible: false,
+      options: [
+        {
+          value: 0,
+          label: '否'
+        },
+        {
+          value: 1,
+          label: '是'
+        }
+      ],
+      methodOptions: [
+        {
+          value: 1,
+          label: '支付宝'
+        },
+        {
+          value: 2,
+          label: '微信'
+        },
+        {
+          value: 3,
+          label: '现金'
+        },
+        {
+          value: 4,
+          label: '银联'
+        },
+        {
+          value: 5,
+          label: '支票'
+        },
+        {
+          value: 6,
+          label: '保函'
+        },
+        {
+          value: 9,
+          label: '其他'
+        }
+      ]
+    }
+  },
+  props: ['bidderName', 'amount', 'showVisible'],
+  watch: {
+    'amount': function (value) {
+      this.$set(this.dialogForm, 'amount', value)
+    }
+  },
+  methods: {
+    handleCancel () {
+      this.dialogForm = {}
+      this.$refs['dialogForm'].resetFields()
+      this.$emit('handleCancel')
+    },
+    handleConfirm () {
+      this.$refs['dialogForm'].validate((vaild) => {
+        if (vaild) {
+          this.$emit('handleConfirm', this.dialogForm)
+        } else {
+          return false
+        }
+      })
+    }
+  },
+  mounted () {
+  }
+}
+</script>
+<style scoped>
+</style>

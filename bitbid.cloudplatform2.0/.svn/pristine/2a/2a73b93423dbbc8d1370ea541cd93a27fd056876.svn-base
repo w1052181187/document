@@ -1,0 +1,22 @@
+export default [
+  {
+    path: '/resource/bidder',
+    name: '投标人管理',
+    meta: {
+      title: '投标人管理',
+      active: '/resource/bidder',
+      permission: '1020301'
+    },
+    component: () => import(/* webpackChunkName: 'resource' */ '@/pages/resource/bidder/index')
+  },
+  {
+    path: '/resource/bidder/list',
+    name: '查看投标人项目列表',
+    meta: {
+      title: '查看投标人项目列表',
+      active: '/resource/bidder/list',
+      permission: '1020301'
+    },
+    component: () => import(/* webpackChunkName: 'resource' */ '@/pages/resource/bidder/list')
+  }
+]

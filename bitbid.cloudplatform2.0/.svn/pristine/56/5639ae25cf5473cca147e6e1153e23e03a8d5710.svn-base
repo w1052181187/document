@@ -1,0 +1,192 @@
+<template>
+  <div class="cloudcontent" id="deposit">
+    <!--搜索按钮-->
+    <div class="topmain">
+      <div class="seacher_box advancedsearch_box">
+        <span>项目名称：</span>
+        <el-input class="search" placeholder="请输入项目名称关键字" style="vertical-align: top"  v-model="searchForm.tenderProjectNameLike"></el-input>
+        <span>投标人名称：</span>
+        <el-input class="search" placeholder="请输入投标人名称" style="vertical-align: top"  v-model="searchForm.bidderNameLike"></el-input>
+        <div class="handBtn" v-if="!showselect">
+          <el-button  type="primary" class="search" @click="search">查询</el-button>
+          <el-button  @click="reset">重置</el-button>
+          <span @click="showselect = true" class="more">展开搜索条件</span>
+        </div>
+        <div class="advancedsearch" v-if="showselect">
+          <el-form :model="searchForm" ref="searchForm" label-width="90px" :validate-on-rule-change="true">
+            <el-row>
+              <span>标段名称：</span>
+              <el-input placeholder="请输入标段名称" v-model="searchForm.tender_numberLike" clearable></el-input>
+              <span>&nbsp;&nbsp;&nbsp;项目编号：</span>
+              <el-input placeholder="请输入项目编号" v-model="searchForm.projectCodeLike" clearable></el-input>
+            </el-row>
+          </el-form >
+          <div class="handBtn">
+            <el-button  type="primary" class="search" @click="search">查询</el-button>
+            <el-button  @click="reset">重置</el-button>
+            <span @click="showselect = false" class="more">收起搜索条件</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!--搜索按钮-->
+    <div class="main">
+      <el-table
+        :data="tableData"
+        border
+        header-cell-class-name="tableheader">
+        <el-table-column
+          type="index"
+          label="序号"
+          align="center"
+          :index="indexMethod"
+          width="80">
+        </el-table-column>
+        <el-table-column
+          prop="tenderProjectName"
+          label="项目名称"
+          width="300"
+          show-overflow-tooltip>
+        </el-table-column>
+        <el-table-column
+          prop="tenderProjectCode"
+          label="项目编号"
+          width="300"
+          show-overflow-tooltip>
+        </el-table-column>
+        <el-table-column
+          prop="bidSectionName"
+          label="标段名称"
+          show-overflow-tooltip>
+        </el-table-column>
+        <el-table-column
+          label="投标人名称"
+          class-name="merge_cell"
+          show-overflow-tooltip>
+          <template slot-scope="scope">
+            <p class="lineitem" v-for="(item, index) in scope.row.tenderlist" :key="index">
+              {{item.name}}
+            </p>
+          </template>
+        </el-table-column>
+        <el-table-column
+          label="待退还金额(元)"
+          class-name="merge_cell"
+          show-overflow-tooltip>
+          <template slot-scope="scope">
+            <p class="lineitem" v-for="(item, index) in scope.row.tenderlist" :key="index">
+              {{item.money}}
+            </p>
+          </template>
+        </el-table-column>
+        <el-table-column
+          label="操作" align="center" width="100"
+          class-name="merge_cell">
+          <template slot-scope="scope">
+            <p class="lineitem" v-for="(item, index) in scope.row.tenderlist" :key="index">
+              <el-button type="text" size="small" @click="handleDetail(item.id)">查看</el-button>
+            </p>
+          </template>
+        </el-table-column>
+      </el-table>
+      <!--分页-->
+      <el-pagination
+        background
+        layout="prev, pager, next"
+        :total="total"
+        :page-size='pageSize'
+        :current-page.sync="currentPage"
+        @current-change="handleCurrentChange">
+      </el-pagination>
+      <!--分页-->
+    </div>
+  </div>
+</template>
+<script>
+export default {
+  name: '',
+  data () {
+    return {
+      // 搜索form
+      searchForm: {
+        openingTimeType: 0
+      },
+      showselect: false, // 高级搜索显示隐藏
+      // 当前页
+      currentPage: 1,
+      pageNo: 0,
+      total: 0, // 总条数
+      pageSize: 10, // 每页展示条数
+      tableData: [
+        {
+          tenderProjectName: '山西省国新能源新',
+          tenderProjectCode: 'YD2019001',
+          bidSectionName: '标段一',
+          tenderlist: [
+            {
+              name: '投标人一',
+              money: '156262',
+              id: '1'
+            },
+            {
+              name: '投标人二',
+              money: '156262',
+              id: '2'
+            },
+            {
+              name: '投标人三',
+              money: '156262',
+              id: '3'
+            }
+          ]
+        }
+      ]
+    }
+  },
+  methods: {
+    // 序号
+    indexMethod (index) {
+      return index + (this.currentPage - 1) * this.pageSize + 1
+    },
+    // 重置
+    reset () {
+      this.searchForm.openingTimeType = 0
+      this.currentPage = 1
+      this.pageNo = 0
+      this.getData()
+    },
+    // 搜索
+    search () {
+      this.currentPage = 1
+      this.pageNo = 0
+      this.getData()
+    },
+    // 分页
+    handleCurrentChange (nowNum) {
+      this.currentPage = nowNum
+      this.pageNo = (nowNum - 1) * this.pageSize
+    }
+  },
+  mounted () {
+  },
+  destroyed () {
+  }
+}
+</script>
+
+<style lang="less">
+  #deposit{
+    .merge_cell .cell{
+      padding: 0;
+    }
+    .lineitem{
+      width: 100%;
+      border-bottom: 1px solid #EBEEF5;
+      line-height: 32px;
+      padding: 0 4px;
+    }
+    .lineitem:last-child{
+      border-bottom: 0;
+    }
+  }
+</style>

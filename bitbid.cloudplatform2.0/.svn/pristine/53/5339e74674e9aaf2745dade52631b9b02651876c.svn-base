@@ -1,0 +1,306 @@
+<template>
+  <div class="cloudcontent" id="cloud_processedit">
+    <div class="main">
+      <el-form :model="updateForm" :rules="rules" ref="updateForm" :validate-on-rule-change="true">
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="项目编号：">
+              <span>{{bidSection.tenderProjectCode}}</span>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="项目名称：">
+              <span>{{bidSection.tenderProjectName}}</span>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="标段编号：">
+              <span>{{bidSection.bidSectionCode}}</span>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="标段名称：">
+              <span>{{bidSection.bidSectionName}}</span>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="投标人："  prop="bidderName">
+              <el-input v-model="updateForm.bidderName" readonly>
+                <el-button v-if="Number(updateForm.dataSource) === 0" type="primary" slot="append" size="mini" @click="btnChoose">选择</el-button>
+              </el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="开标记录表名称：">
+              <el-input v-if="Number(updateForm.dataSource) === 0" v-model="updateForm.objectionTitle"></el-input>
+              <el-input v-if="Number(updateForm.dataSource) === 1" v-model="updateForm.objectionTitle" readonly></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="24" class="ueditor_box">
+            <el-form-item label="疑义内容：" class="bitianicon">
+              <editor v-if="Number(updateForm.dataSource) === 0" ref="objectionUeditor" class="ueditor" :editread="false" :content="content"></editor>
+              <editor v-if="Number(updateForm.dataSource) === 1" ref="objectionUeditor" class="ueditor" :editread="true" :content="content"></editor>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="24">
+            <el-form-item label="疑义附件：" v-if="Number(updateForm.dataSource) === 0">
+              <upload-file @uploadSuccess="uploadOtherSuccess" @deleteSuccess="deleteSuccess"
+                           :fileArrays="updateForm.fileInformationList"
+                           fileType="1"
+                           isImage="0">
+              </upload-file>
+            </el-form-item>
+            <el-form-item label="疑义附件：" v-if="Number(updateForm.dataSource) === 1">
+              <el-table
+                :data="updateForm.objectionFileInformationList"
+                border
+                style="width: 100%" header-cell-class-name="tableheader">
+                <el-table-column
+                  type="index"
+                  label="序号"
+                  width="60"
+                  align="center">
+                </el-table-column>
+                <el-table-column
+                  prop="fileName"
+                  label="文件名称"
+                  show-overflow-tooltip>
+                </el-table-column>
+                <el-table-column
+                  label="操作" align="center" width="200">
+                  <template slot-scope="scope">
+                    <el-button type="text" size="small" @click="lookFile(scope.row)">查看</el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="24" class="ueditor_box">
+            <el-form-item label="澄清内容：" class="bitianicon">
+              <editor ref="clarifyUeditor" class="ueditor" :editread="editread" :content="content"></editor>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="24">
+            <el-form-item label="澄清附件：">
+              <upload-file @uploadSuccess="uploadClarifySuccess" @deleteSuccess="deleteClarifySuccess"
+                           :fileArrays="updateForm.fileInformationList"
+                           fileType="2"
+                           isImage="0">
+              </upload-file>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-form-item class="submit-radio">
+          <el-button type="primary" @click="submit('updateForm', 0)" :loading="isSaving">保存</el-button>
+          <el-button type="primary" class="submitBtn" @click="submit('updateForm', 1)" :loading="isSubmiting">提交</el-button>
+          <el-button class="cancal" @click="close">取消</el-button>
+        </el-form-item>
+      </el-form>
+    </div>
+    <bidder-dialog v-if="!tradingPlatformFlag" :tenderSystemCode="tenderSystemCode" :showVisible="showBidderVisible" @selected="selectedBidder" @showDialog="showBidderDialog"></bidder-dialog>
+    <section-bidder-dialog v-if="tradingPlatformFlag" :tenderSystemCode="tenderSystemCode" :showVisible="showBidderVisible" @selected="selectedBidder" @showDialog="showBidderDialog" :sectionSystemCode="updateForm.sectionSystemCode"></section-bidder-dialog>
+    <submitApproveDialog :showVisible="approveDialogVisable" :tenderSystemCode="tenderSystemCode" ref="approvalDialog" @confirmSubmit="confirmSubmit" @handleCancel="cancelApprove"></submitApproveDialog>
+  </div>
+</template>
+<script>
+import editor from '@/components/ueditor/ueditor.vue'
+import {downloadFile} from '@/assets/js/common'
+import uploadFile from '@/components/upload/publicFileUpload'
+import {questionAndAnswerInfo} from '@/api/project'
+import bidderDialog from '@/pages/project/projectProcess/common/bidder_dialog.vue'
+import submitApproveDialog from '@/pages/project/commonCompents/submitApproveDialog'
+import sectionBidderDialog from '@/pages/project/projectProcess/common/section_bidder_dialog.vue'
+export default {
+  components: {
+    editor,
+    uploadFile,
+    bidderDialog,
+    submitApproveDialog,
+    sectionBidderDialog
+  },
+  data () {
+    return {
+      isSaving: false,
+      isSubmiting: false,
+      updateForm: {
+        bidderName: '',
+        fileInformationList: []
+      },
+      rules: {
+        bidderName: {required: true, message: '请填写投标人', trigger: 'blur'},
+        objectionTitle: {required: true, message: '请填写开标记录表名称', trigger: 'blur'}
+      },
+      // 富文本
+      editread: false,
+      content: '',
+      bidSection: {},
+      showBidderVisible: false,
+      tenderSystemCode: this.$route.query.tenderSystemCode,
+      approveDialogVisable: false,
+      tradingPlatformFlag: this.$store.getters.authUser.tradingPlatformFlag
+    }
+  },
+  methods: {
+    lookFile (file) {
+      downloadFile(file.fileName, file.relativePath)
+    },
+    // 上传附件
+    uploadOtherSuccess (file) {
+      this.updateForm.fileInformationList.push(file)
+    },
+    deleteSuccess (fileId) {
+      this.updateForm.fileInformationList = this.updateForm.fileInformationList.filter(item => item.relativePath !== fileId)
+    },
+    // 上传澄清附件
+    uploadClarifySuccess (file) {
+      this.updateForm.fileInformationList.push(file)
+    },
+    deleteClarifySuccess (fileId) {
+      this.updateForm.fileInformationList = this.updateForm.fileInformationList.filter(item => item.relativePath !== fileId)
+    },
+    // 提交/保存
+    submit (form, status) {
+      if (!this.$refs.objectionUeditor.getContent() || !this.$refs.clarifyUeditor.getContent()) {
+        this.$message({
+          message: '请填写疑义内容及澄清内容！',
+          type: 'warning'
+        })
+        return
+      }
+      this.$refs[form].validate((vaild) => {
+        if (vaild) {
+          if (Object.is(status, 0)) {
+            this.approveDialogVisable = false
+            this.submitData(status)
+          } else {
+            this.approveDialogVisable = true
+          }
+        } else {
+          return false
+        }
+      })
+    },
+    submitData (status) {
+      let msg = Object.is(status, 1) ? '提交后数据将锁定，不允许修改，确认要提交吗?' : '确定要保存吗?'
+      this.$confirm(msg, '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning',
+        beforeClose: (action, instance, done) => {
+          done()
+        }
+      }).then(() => {
+        if (Object.is(status, 0)) {
+          this.isSaving = true
+        } else if (Object.is(status, 1)) {
+          this.cancelApprove()
+          this.isSubmiting = true
+          this.updateForm.auditStatus = 4
+          this.updateForm.submitTime = new Date().getTime()
+        }
+        this.updateForm.objectionContent = this.$refs.objectionUeditor.getContent()
+        this.updateForm.clarifyContent = this.$refs.clarifyUeditor.getContent()
+        this.updateForm.fileInformationList.map(item => {
+          item.objectId = null
+        })
+        this.updateForm.clarificationState = 1
+        this.updateForm.clarificationTime = new Date().getTime()
+        questionAndAnswerInfo.update(this.updateForm).then((res) => {
+          this.isSaving = false
+          this.isSubmiting = false
+          if (res.data.resCode === '0000') {
+            this.close()
+          }
+        })
+      }).catch(() => {
+        this.isSaving = false
+        this.isSubmiting = false
+        return false
+      })
+    },
+    // 确认提交
+    confirmSubmit (record) {
+      this.updateForm.approvalFlowExecutorList = []
+      this.updateForm.manualAdditionList = []
+      for (let i = 0; i < record.approveList.length; i++) {
+        let obj = {
+          usersId: record.approveList[i].objectId,
+          flowLevel: i + 1
+        }
+        this.updateForm.approvalFlowExecutorList.push(obj)
+      }
+      if (record.noticeList && record.noticeList.length > 0) {
+        this.updateForm.manualAdditionList = record.noticeList
+      }
+      this.submitData(1)
+    },
+    cancelApprove () {
+      this.approveDialogVisable = false
+    },
+    // 取消
+    close () {
+      this.$store.commit('delete_tabs', this.$route.fullPath)
+      this.$router.go(-1)
+    },
+    getQuesAndAnsInfo () {
+      questionAndAnswerInfo.getById(this.$route.query.objectId).then(res => {
+        this.updateForm = res.data.questionAndAnswerInfo
+        if (this.updateForm.bidSection) {
+          this.bidSection = this.updateForm.bidSection
+        }
+        if (this.updateForm.objectionContent) {
+          this.$nextTick(() => {
+            this.$refs.objectionUeditor.setContent(this.updateForm.objectionContent)
+          })
+        }
+        if (this.updateForm.clarifyContent) {
+          this.$refs.clarifyUeditor.setContent(this.updateForm.clarifyContent)
+        }
+        if (this.updateForm.fileInformationList) {
+          this.updateForm.objectionFileInformationList = []
+          this.updateForm.fileInformationList.map(file => {
+            if (Object.is(file.businessType, '1')) {
+              this.updateForm.objectionFileInformationList.push(file)
+            }
+          })
+        }
+      })
+    },
+    // 选择投标人
+    btnChoose () {
+      this.showBidderVisible = true
+    },
+    // 选择投标人弹窗 打开/关闭
+    showBidderDialog () {
+      this.showBidderVisible = !this.showBidderVisible
+    },
+    // 已选择投标人信息
+    selectedBidder (obj) {
+      this.updateForm.bidderName = obj.name
+      this.updateForm.bidderId = obj.objectId
+    }
+  },
+  watch: {
+    '$route': 'getQuesAndAnsInfo'
+  },
+  mounted () {
+    this.getQuesAndAnsInfo()
+  }
+}
+</script>
+<style lang="less">
+  #cloud_processedit{
+  }
+</style>

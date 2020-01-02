@@ -1,0 +1,281 @@
+<template>
+  <div class="cloudcontent" id="cloud_processedit">
+    <approve-flow :approvalTaskCode="approvalTaskCode" :subjectCode="$route.params.code" v-if="tableFlag"></approve-flow>
+    <div class="project-info-line" v-if="tableFlag"></div>
+    <div class="main viewdetails">
+      <div class="basic-approve-title">中标结果公告质疑及回复</div>
+      <el-form :model="updateForm" :validate-on-rule-change="true">
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="项目名称：">
+              <span>{{updateForm.tenderProjectName}}</span>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="项目编号：" >
+              <span>{{updateForm.tenderProjectCode}}</span>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="标段名称：">
+              <span>{{updateForm.bidSectionName}}</span>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="标段编号：">
+              <span>{{updateForm.bidSectionCode}}</span>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="投标人：">
+              <span>{{updateForm.bidderName}}</span>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="标题：">
+              <span>{{updateForm.objectionTitle}}</span>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="24" class="ueditor_box">
+            <el-form-item label="质疑内容：">
+              <editor ref="objectionUeditor" class="ueditor" :editread="editread"></editor>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="24" class="ueditor_box">
+            <el-form-item label="依据及理由：">
+              <editor ref="reasonUeditor" class="ueditor" :editread="editread"></editor>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="24">
+            <el-form-item label="附件：">
+              <el-table
+                :data="updateForm.reasonFileInformationList"
+                border
+                style="width: 100%" header-cell-class-name="tableheader">
+                <el-table-column
+                  type="index"
+                  label="序号"
+                  width="60"
+                  align="center">
+                </el-table-column>
+                <el-table-column
+                  prop="fileName"
+                  label="文件名称"
+                  show-overflow-tooltip>
+                </el-table-column>
+                <el-table-column
+                  label="操作" align="center" width="200">
+                  <template slot-scope="scope">
+                    <el-button type="text" size="small" @click="lookFile(scope.row)">查看</el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="24" class="ueditor_box">
+            <el-form-item label="回复内容：" class="bitianicon">
+              <editor ref="clarifyUeditor" class="ueditor" :editread="clarifyEditread"></editor>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="24">
+            <el-form-item label="附件：">
+              <upload-file @uploadSuccess="uploadReplySuccess" @deleteSuccess="deleteReplySuccess"
+                           :fileArrays="updateForm.clarifyFileInformationList"
+                           fileType="2"
+                           isImage="0">
+              </upload-file>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-form-item class="submit-radio">
+          <el-button type="primary" @click="submit('updateForm', 0)" :loading="isSaving">保存</el-button>
+          <el-button type="primary" class="submitBtn" @click="submit('updateForm', 1)" :loading="isSubmiting">提交</el-button>
+          <el-button class="cancal" @click="close">取消</el-button>
+        </el-form-item>
+      </el-form>
+      <submitApproveDialog :flowStatus="flowStatus" :tenderSystemCode="updateForm.tenderSystemCode" :showVisible="approveDialogVisable" @confirmSubmit="confirmSubmit" @handleCancel="cancelApprove"></submitApproveDialog>
+    </div>
+  </div>
+</template>
+<script>
+import editor from '@/components/ueditor/ueditor.vue'
+import uploadFile from '@/components/upload/publicFileUpload'
+import {questionAndAnswerInfo} from '@/api/project/index'
+import submitApproveDialog from '@/pages/project/commonCompents/submitApproveDialog'
+export default {
+  components: {
+    editor,
+    uploadFile,
+    submitApproveDialog
+  },
+  data () {
+    return {
+      flowStatus: 18,
+      updateForm: {
+        tenderProjectCode: '',
+        clarifyFileInformationList: [],
+        reasonFileInformationList: [],
+        approvalFlowExecutorList: []
+      },
+      isSaving: false,
+      isSubmiting: false,
+      approveDialogVisable: false,
+      tableFlag: false,
+      // 富文本
+      editread: true,
+      objectId: this.$route.params.objectId,
+      clarifyEditread: false
+    }
+  },
+  methods: {
+    // 上传回复附件
+    uploadReplySuccess (file) {
+      this.updateForm.clarifyFileInformationList.push(file)
+    },
+    deleteReplySuccess (fileId) {
+      this.updateForm.clarifyFileInformationList = this.updateForm.clarifyFileInformationList.filter(item => item.relativePath !== fileId)
+    },
+    getQuesAndAnsInfo () {
+      questionAndAnswerInfo.getById(this.objectId).then(res => {
+        this.updateForm = Object.assign(this.updateForm, res.data.questionAndAnswerInfo)
+        if (this.updateForm.objectionContent) {
+          this.$refs.objectionUeditor.setContent(this.updateForm.objectionContent)
+        }
+        /*  if (this.updateForm.clarifyContent) {
+          this.$refs.clarifyUeditor.setContent(this.updateForm.clarifyContent)
+        } */
+        if (this.updateForm.basisAndReason) {
+          this.$refs.reasonUeditor.setContent(this.updateForm.basisAndReason)
+        }
+        if (res.data.questionAndAnswerInfo.bidSection) {
+          this.updateForm.tenderProjectName = res.data.questionAndAnswerInfo.bidSection.tenderProjectName
+          this.updateForm.tenderProjectCode = res.data.questionAndAnswerInfo.bidSection.tenderProjectCode
+          this.updateForm.bidSectionName = res.data.questionAndAnswerInfo.bidSection.bidSectionName
+          this.updateForm.bidSectionCode = res.data.questionAndAnswerInfo.bidSection.bidSectionCode
+        }
+        if (this.updateForm.fileInformationList && this.updateForm.fileInformationList.length > 0) {
+          this.updateForm.fileInformationList.forEach(item => {
+            if (Number(item.businessType) === 1) {
+              item.objectId = null
+              this.updateForm.reasonFileInformationList.push(item)
+            }
+          })
+        }
+      })
+    },
+    // 提交/保存
+    submit (form, status) {
+      if (!this.$refs.objectionUeditor.getContent() || !this.$refs.clarifyUeditor.getContent()) {
+        this.$message({
+          message: '请填写质疑内容及回复内容！',
+          type: 'warning'
+        })
+        return
+      } else if (this.$refs.objectionUeditor.getContent() && !this.$refs.reasonUeditor.getContent()) {
+        this.$message({
+          message: '请填写依据及理由！',
+          type: 'warning'
+        })
+        return
+      }
+      if (Object.is(status, 0)) {
+        this.approveDialogVisable = false
+        this.submitData(status)
+      } else {
+        this.approveDialogVisable = true
+      }
+    },
+    submitData (status) {
+      let msg = Object.is(status, 1) ? '提交后数据将锁定，不允许修改，确认要提交吗?' : '确定要保存吗?'
+      this.$confirm(msg, '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning',
+        beforeClose: (action, instance, done) => {
+          done()
+        }
+      }).then(() => {
+        if (Object.is(status, 0)) {
+          this.isSaving = true
+          this.updateForm.auditStatus = 0
+        } else if (Object.is(status, 1)) {
+          this.cancelApprove()
+          this.isSubmiting = true
+          this.updateForm.auditStatus = 4
+          this.updateForm.submitTime = new Date().getTime()
+        }
+        this.updateForm.type = 8
+        this.updateForm.objectionContent = this.$refs.objectionUeditor.getContent()
+        this.updateForm.basisAndReason = this.$refs.reasonUeditor.getContent()
+        this.updateForm.clarifyContent = this.$refs.clarifyUeditor.getContent()
+        this.updateForm.fileInformationList = this.updateForm.reasonFileInformationList.concat(this.updateForm.clarifyFileInformationList)
+        questionAndAnswerInfo.update(this.updateForm).then((res) => {
+          this.isSaving = false
+          this.isSubmiting = false
+          if (res.data.resCode === '0000') {
+            this.close()
+          }
+        })
+      }).catch(() => {
+        this.isSaving = false
+        this.isSubmiting = false
+        return false
+      })
+    },
+    // 确认提交
+    confirmSubmit (record) {
+      this.updateForm.approvalFlowExecutorList = []
+      this.updateForm.noticeList = []
+      for (let i = 0; i < record.approveList.length; i++) {
+        let obj = {
+          usersId: record.approveList[i].objectId,
+          flowLevel: i + 1
+        }
+        this.updateForm.approvalFlowExecutorList.push(obj)
+      }
+      if (record.noticeList && record.noticeList.length > 0) {
+        this.updateForm.noticeList = record.noticeList
+      }
+      this.submitData(1)
+    },
+    cancelApprove () {
+      this.approveDialogVisable = false
+    },
+    // 取消
+    close () {
+      this.$store.commit('delete_tabs', this.$route.fullPath)
+      this.$router.go(-1)
+    },
+    init () {
+      /* this.isApproved = this.$route.query.isApproved
+      this.auditStatus = this.$route.query.auditStatus
+      this.approvalTaskCode = this.$route.query.code */
+      this.getQuesAndAnsInfo()
+    }
+  },
+  watch: {
+    '$route': 'init'
+  },
+  mounted () {
+    this.init()
+  }
+}
+</script>
+<style lang="less">
+  #cloud_processedit{
+  }
+</style>

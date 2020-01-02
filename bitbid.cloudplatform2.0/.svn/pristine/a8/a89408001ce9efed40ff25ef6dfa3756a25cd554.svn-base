@@ -1,0 +1,1256 @@
+<template>
+  <div class="cloudcontent" id="cloud_processtype">
+    <div class="box">
+      <div class="topmain">
+        中标候选人公示
+        <!--按钮-->
+        <el-button  type="primary" class="addbutton" @click="addWinbidpublicBtn()" v-if="operationFlag">
+          <span> + 添加</span>
+        </el-button>
+        <!--按钮-->
+      </div>
+      <el-table
+        :data="publicTable"
+        header-cell-class-name="tableheader"
+        border>
+        <el-table-column
+          type="index"
+          label="序号"
+          :index='publicTableIndexMethod'
+          width="60">
+        </el-table-column>
+        <el-table-column
+          prop="title"
+          label="公示名称"
+          show-overflow-tooltip>
+        </el-table-column>
+        <el-table-column
+          prop="auditStatus"
+          label="公示状态"
+          width="120">
+          <template slot-scope="scope">
+            <span  v-if="scope.row.auditStatus === 0">已保存</span>
+            <span  v-if="scope.row.auditStatus === 1">待审批</span>
+            <span  v-if="scope.row.auditStatus === 2">已审批</span>
+            <span  v-if="scope.row.auditStatus === 3">已驳回</span>
+            <span  v-if="scope.row.auditStatus === 4">已提交</span>
+            <span  v-if="scope.row.auditStatus === 5">已撤回</span>
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="submitterName"
+          label="提交人"
+          width="140">
+        </el-table-column>
+        <el-table-column
+          prop="submitTime"
+          label="提交时间"
+          :formatter="formatDate"
+          width="160">
+        </el-table-column>
+        <el-table-column
+          prop="releaseTime"
+          label="发布时间"
+          :formatter="formatDate"
+          width="160">
+        </el-table-column>
+        <el-table-column
+          label="操作" align="center" width="260">
+          <template slot-scope="scope">
+            <el-button type="text" size="small" @click="lookWinbidpublicBtn(scope)">查看</el-button>
+            <el-button type="text" size="small" @click="publishWinbidpublicBtn(scope)" v-if="(scope.row.auditStatus === 2 || scope.row.auditStatus === 4) && checkDataSource">发布</el-button>
+            <el-button type="text" size="small" v-if="(scope.row.auditStatus === 0 || scope.row.auditStatus === 3 || scope.row.auditStatus === 5) && operationFlag" @click="updateWinbidpublicBtn(scope)">编辑</el-button>
+            <el-button type="text" size="small" v-if="scope.row.auditStatus === 0 && operationFlag" @click="delWinbidpublicBtn(scope)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <!--分页-->
+      <el-pagination
+        background
+        layout="prev, pager, next"
+        :total="publicTotal"
+        :page-size='publicPageSize'
+        :current-page.sync="publicCurrentPage"
+        @current-change="handlePublicCurrentChange">
+      </el-pagination>
+      <!--分页-->
+    </div>
+    <div class="box">
+      <div class="topmain">
+        中标候选人公示疑义及澄清
+        <!--按钮-->
+        <el-button  type="primary" class="addbutton" @click="addWinbidclearBtn()" v-if="operationFlag">
+          <span> + 添加</span>
+        </el-button>
+        <!--按钮-->
+      </div>
+      <el-table
+        :data="tableData2"
+        header-cell-class-name="tableheader"
+        border>
+        <el-table-column
+          type="index"
+          label="序号"
+          :index="indexMethod2"
+          width="60">
+        </el-table-column>
+        <el-table-column
+          prop="objectionTitle"
+          label="疑义标题"
+          show-overflow-tooltip>
+        </el-table-column>
+        <el-table-column
+          prop="bidderName"
+          label="投标人"
+          show-overflow-tooltip>
+        </el-table-column>
+        <el-table-column
+          prop="auditStatus"
+          label="提交状态"
+          width="120">
+          <template slot-scope="scope">
+            <span  v-if="scope.row.auditStatus === 0">已保存</span>
+            <span  v-if="scope.row.auditStatus === 1">待审批</span>
+            <span  v-if="scope.row.auditStatus === 2">已审批</span>
+            <span  v-if="scope.row.auditStatus === 3">已驳回</span>
+            <span  v-if="scope.row.auditStatus === 4">已提交</span>
+            <span  v-if="scope.row.auditStatus === 5">已撤回</span>
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="submitter"
+          label="提交人"
+          :formatter="simpleFormatData"
+          width="140">
+        </el-table-column>
+        <el-table-column
+          prop="submitTime"
+          label="提交时间"
+          :formatter="formatDate"
+          width="160">
+        </el-table-column>
+        <el-table-column
+          prop="clarificationState"
+          label="澄清状态"
+          width="120">
+          <template slot-scope="scope">
+            <span  v-if="scope.row.clarificationState === 1">已澄清</span>
+            <span  v-if="scope.row.clarificationState === 0">未澄清</span>
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="clarificationTime"
+          label="澄清时间"
+          :formatter="formatDate"
+          width="160">
+        </el-table-column>
+        <el-table-column
+          label="操作" align="center" width="260">
+          <template slot-scope="scope">
+            <el-button type="text" size="small" @click="lookWinbidclearBtn(scope)">查看</el-button>
+            <el-button type="text" size="small" v-if="(scope.row.auditStatus === 0 || scope.row.auditStatus === 3 || scope.row.auditStatus === 5) && operationFlag" @click="updateWinbidclearBtn(scope)">编辑</el-button>
+            <el-button type="text" size="small" v-if="(scope.row.auditStatus === 0) && operationFlag" @click="delWinbidclearBtn(scope)">删除</el-button>
+            <el-button type="text" size="small" v-if="(scope.row.auditStatus === 4 && scope.row.clarificationState === 0) && operationFlag" @click="clearWinbidclearBtn(scope)">澄清</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <!--分页-->
+      <el-pagination
+        background
+        layout="prev, pager, next"
+        :total="total2"
+        :page-size='pageSize2'
+        :current-page.sync="currentPage2"
+        @current-change="handleCurrentChange2">
+      </el-pagination>
+      <!--分页-->
+    </div>
+    <div class="box">
+      <div class="topmain">
+        中标确认函
+        <!--按钮-->
+        <el-button  type="primary" class="addbutton" @click="addWinbidOkBtn()" v-if="operationFlag">
+          <span> + 添加</span>
+        </el-button>
+        <!--按钮-->
+      </div>
+      <el-table
+        :data="winbidOkData"
+        header-cell-class-name="tableheader"
+        border>
+        <el-table-column
+          type="index"
+          label="序号"
+          :index="indexMethodWinbidOk"
+          width="60">
+        </el-table-column>
+        <el-table-column
+          prop="bidSectionCode"
+          label="包组编号"
+          show-overflow-tooltip>
+        </el-table-column>
+        <el-table-column
+          prop="bidSectionName"
+          label="包组名称"
+          show-overflow-tooltip>
+        </el-table-column>
+        <el-table-column
+          prop="winCandidateName"
+          label="中标人"
+          show-overflow-tooltip>
+        </el-table-column>
+        <el-table-column
+          prop="status"
+          label="提交状态"
+          width="120">
+          <template slot-scope="scope">
+            <span  v-if="scope.row.status === 0">已保存</span>
+            <span  v-if="scope.row.status === 1">待审批</span>
+            <span  v-if="scope.row.status === 2">已审批</span>
+            <span  v-if="scope.row.status === 3">已驳回</span>
+            <span  v-if="scope.row.status === 4">已提交</span>
+            <span  v-if="scope.row.status === 5">已撤回</span>
+            <span  v-if="scope.row.status === 6">已发布</span>
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="submitTime"
+          label="提交时间"
+          :formatter="formatDate"
+          width="160">
+        </el-table-column>
+        <el-table-column
+          prop="submitterName"
+          label="提交人"
+          :formatter="simpleFormatData"
+          width="140">
+        </el-table-column>
+        <el-table-column
+          prop="changeNums"
+          label="更改次数"
+          :formatter="filterChangeNums"
+          width="120">
+        </el-table-column>
+        <el-table-column
+          label="操作" align="center" width="260">
+          <template slot-scope="scope">
+            <el-button type="text" size="small" @click="lookWinbidOkBtn(scope)">查看</el-button>
+            <el-button type="text" size="small" v-if="(scope.row.status === 0 || scope.row.status === 3 || scope.row.status === 5) && operationFlag" @click="updateWinbidOkBtn(scope)">编辑</el-button>
+            <el-button type="text" size="small" v-if="scope.row.status === 0 && operationFlag" @click="delWinbidOkBtn(scope)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <!--分页-->
+      <el-pagination
+        background
+        layout="prev, pager, next"
+        :total="totalWinbidOk"
+        :page-size='pageSizeWinbidOk'
+        :current-page.sync="currentPageWinbidOk"
+        @current-change="handleCurrentChangeWinbidOk">
+      </el-pagination>
+      <!--分页-->
+    </div>
+    <div class="box">
+      <div class="topmain">
+        中标结果公告
+        <!--按钮-->
+        <el-button  type="primary" class="addbutton" @click="addWinbidnoticeBtn" v-if="operationFlag">
+          <span> + 添加</span>
+        </el-button>
+        <!--按钮-->
+      </div>
+      <el-table
+        :data="winbidNoticeTable"
+        header-cell-class-name="tableheader"
+        border>
+        <el-table-column
+          type="index"
+          label="序号"
+          :index='noticeCurrentIndexMethod'
+          width="50">
+        </el-table-column>
+        <el-table-column
+          prop="title"
+          label="中标结果公告名称"
+          show-overflow-tooltip>
+        </el-table-column>
+        <el-table-column
+          prop="auditStatus"
+          label="公告状态"
+          width="120">
+          <template slot-scope="scope">
+            <span  v-if="scope.row.auditStatus === 0">已保存</span>
+            <span  v-if="scope.row.auditStatus === 1">待审批</span>
+            <span  v-if="scope.row.auditStatus === 2">已审批</span>
+            <span  v-if="scope.row.auditStatus === 3">已驳回</span>
+            <span  v-if="scope.row.auditStatus === 4">已提交</span>
+            <span  v-if="scope.row.auditStatus === 5">已撤回</span>
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="submitterName"
+          label="提交人"
+          width="140">
+        </el-table-column>
+        <el-table-column
+          prop="submitTime"
+          label="提交时间"
+          :formatter="formatDate"
+          width="160">
+        </el-table-column>
+        <el-table-column
+          prop="releaseTime"
+          label="发布时间"
+          :formatter="formatDate"
+          width="160">
+        </el-table-column>
+        <el-table-column
+          label="操作" align="center" width="260">
+          <template slot-scope="scope">
+            <el-button type="text" size="small" @click="lookWinbidnoticeBtn(scope)">查看</el-button>
+            <el-button type="text" size="small" @click="publishWinbidnoticeBtn(scope)" v-if="(scope.row.auditStatus === 2 || scope.row.auditStatus === 4) && checkDataSource">发布</el-button>
+            <el-button type="text" size="small" v-if="(scope.row.auditStatus === 0 || scope.row.auditStatus === 3 || scope.row.auditStatus === 5) && operationFlag" @click="updateWinbidnoticeBtn(scope)">编辑</el-button>
+            <el-button type="text" size="small" v-if="scope.row.auditStatus === 0 && operationFlag" @click="delWinbidnoticeBtn(scope)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <!--分页-->
+      <el-pagination
+        background
+        layout="prev, pager, next"
+        :total="noticeTotal"
+        :page-size='noticePageSize'
+        :current-page.sync="noticeCurrentPage"
+        @current-change="handleNoticeCurrentChange">
+      </el-pagination>
+      <!--分页-->
+    </div>
+    <div class="box">
+      <div class="topmain">
+        中标结果公告质疑及回复
+        <!--按钮-->
+        <el-button  type="primary" class="addbutton" @click="addWinbidnoticeObjectionBtn" v-if="operationFlag && !checkDataSource">
+          <span> + 添加</span>
+        </el-button>
+        <!--按钮-->
+      </div>
+      <el-table
+        :data="winbidNoticeObjectionTable"
+        header-cell-class-name="tableheader"
+        border>
+        <el-table-column
+          type="index"
+          label="序号"
+          :index='noticeObjectionCurrentIndexMethod'
+          width="50">
+        </el-table-column>
+        <el-table-column
+          prop="objectionTitle"
+          label="标题"
+          show-overflow-tooltip>
+        </el-table-column>
+        <el-table-column
+          prop="bidderName"
+          label="投标人"
+          show-overflow-tooltip>
+        </el-table-column>
+        <el-table-column
+          prop="auditStatus"
+          label="提交状态"
+          width="120">
+          <template slot-scope="scope">
+            <span  v-if="scope.row.auditStatus === 0">已保存</span>
+            <span  v-if="scope.row.auditStatus === 1">待审批</span>
+            <span  v-if="scope.row.auditStatus === 2">已审批</span>
+            <span  v-if="scope.row.auditStatus === 3">已驳回</span>
+            <span  v-if="scope.row.auditStatus === 4">已提交</span>
+            <span  v-if="scope.row.auditStatus === 5">已撤回</span>
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="submitter"
+          label="提交人"
+          :formatter="simpleFormatData"
+          width="140">
+        </el-table-column>
+        <el-table-column
+          prop="submitTime"
+          label="提交时间"
+          :formatter="formatDate"
+          width="160px">
+        </el-table-column>
+        <el-table-column
+          prop="clarificationState"
+          label="回复状态"
+          width="120">
+          <template slot-scope="scope">
+            <span  v-if="scope.row.clarificationState === 0">未回复</span>
+            <span  v-if="scope.row.clarificationState === 1">已回复</span>
+            <span  v-if="scope.row.clarificationState !== 0 && scope.row.clarificationState !== 1">---</span>
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="clarificationTime"
+          label="回复时间"
+          :formatter="formatDate"
+          width="160">
+        </el-table-column>
+        <el-table-column
+          label="操作" align="center" width="260">
+          <template slot-scope="scope">
+            <el-button type="text" size="small" @click="replyWinbidnoticeObjectionBtn(scope)" v-if="operationFlag && scope.row.clarificationState === 0 && (scope.row.auditStatus === 2 || scope.row.auditStatus === 4)">回复</el-button>
+            <el-button type="text" size="small" @click="lookWinbidnoticeObjectionBtn(scope)">查看</el-button>
+            <el-button type="text" size="small" @click="updateWinbidnoticeObjectionBtn(scope)" v-if="operationFlag && !checkDataSource && (scope.row.auditStatus === 0 || scope.row.auditStatus === 3)">编辑</el-button>
+            <el-button type="text" size="small" @click="delWinbidnoticeObjectionBtn(scope)" v-if="operationFlag && !checkDataSource && scope.row.auditStatus === 0">删除</el-button>
+            </template>
+        </el-table-column>
+      </el-table>
+      <!--分页-->
+      <el-pagination
+        background
+        layout="prev, pager, next"
+        :total="noticeObjectionTotal"
+        :page-size='noticeObjectionPageSize'
+        :current-page.sync="noticeObjectionCurrentPage"
+        @current-change="handleNoticeObjectionCurrentChange">
+      </el-pagination>
+      <!--分页-->
+    </div>
+    <div class="box">
+      <div class="topmain">
+        中标通知书
+        <!--按钮-->
+        <el-button  type="primary" class="addbutton"  @click="addWinbidinformBtn()" v-if="operationFlag">
+          <span> + 添加</span>
+        </el-button>
+        <!--按钮-->
+      </div>
+      <el-table
+        :data="tableData4"
+        header-cell-class-name="tableheader"
+        border>
+        <el-table-column
+          type="index"
+          label="序号"
+          :index="indexMethod4"
+          width="50">
+        </el-table-column>
+        <el-table-column
+          prop="successfulBidders"
+          label="中标人"
+          show-overflow-tooltip>
+        </el-table-column>
+        <el-table-column
+          prop="bidAmount"
+          label="中标价格"
+          show-overflow-tooltip>
+        </el-table-column>
+        <el-table-column
+          prop="auditStatus"
+          label="通知书状态"
+          width="120">
+          <template slot-scope="scope">
+            <span  v-if="scope.row.auditStatus === 0">已保存</span>
+            <span  v-if="scope.row.auditStatus === 1">待审批</span>
+            <span  v-if="scope.row.auditStatus === 2">已审批</span>
+            <span  v-if="scope.row.auditStatus === 3">已驳回</span>
+            <span  v-if="scope.row.auditStatus === 4">已提交</span>
+            <span  v-if="scope.row.auditStatus === 5">已撤回</span>
+            <span  v-if="scope.row.auditStatus === 6">已发出</span>
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="submitter"
+          label="提交人"
+          :formatter="simpleFormatData"
+          width="140">
+        </el-table-column>
+        <el-table-column
+          prop="submitTime"
+          label="提交时间"
+          :formatter="formatDate"
+          width="160">
+        </el-table-column>
+        <el-table-column
+          prop="issueTime"
+          label="发出时间"
+          :formatter="formatDate"
+          width="160">
+        </el-table-column>
+        <el-table-column
+          label="操作" align="center" width="260">
+          <template slot-scope="scope">
+            <el-button type="text" size="small" @click="lookWinbidinformBtn(scope)">查看</el-button>
+            <el-button type="text" size="small" v-if="(scope.row.auditStatus === 2 || scope.row.auditStatus === 4) && operationFlag && tradingPlatformFlag" @click="publishWinbidinformBtn(scope)">发出</el-button>
+            <el-button type="text" size="small" v-if="(scope.row.auditStatus === 0 || scope.row.auditStatus === 3 || scope.row.auditStatus === 5) && operationFlag" @click="updateWinbidinformBtn(scope)">编辑</el-button>
+            <el-button type="text" size="small" v-if="(scope.row.auditStatus === 0) && operationFlag" @click="delWinbidinformBtn(scope)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <!--分页-->
+      <el-pagination
+        background
+        layout="prev, pager, next"
+        :total="total4"
+        :page-size='pageSize4'
+        :current-page.sync="currentPage4"
+        @current-change="handleCurrentChange4">
+      </el-pagination>
+      <!--分页-->
+    </div>
+    <div class="box">
+      <div class="topmain">
+        招标结果通知书
+        <!--按钮-->
+        <el-button  type="primary" class="addbutton" @click="addTenderinformBtn()" v-if="operationFlag">
+          <span> + 添加</span>
+        </el-button>
+        <!--按钮-->
+      </div>
+      <el-table
+        :data="tableData5"
+        header-cell-class-name="tableheader"
+        border>
+        <el-table-column
+          type="index"
+          label="序号"
+          :index="indexMethod5"
+          width="50">
+        </el-table-column>
+        <el-table-column
+          prop="noticeName"
+          label="招标结果通知书名称"
+          show-overflow-tooltip>
+        </el-table-column>
+        <el-table-column
+          prop="auditStatus"
+          label="通知书状态"
+          width="120">
+          <template slot-scope="scope">
+            <span  v-if="scope.row.auditStatus === 0">已保存</span>
+            <span  v-if="scope.row.auditStatus === 1">待审批</span>
+            <span  v-if="scope.row.auditStatus === 2">已审批</span>
+            <span  v-if="scope.row.auditStatus === 3">已驳回</span>
+            <span  v-if="scope.row.auditStatus === 4">已提交</span>
+            <span  v-if="scope.row.auditStatus === 5">已撤回</span>
+            <span  v-if="scope.row.auditStatus === 6">已发出</span>
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="submitter"
+          label="提交人"
+          :formatter="simpleFormatData"
+          width="140">
+        </el-table-column>
+        <el-table-column
+          prop="submitTime"
+          label="提交时间"
+          :formatter="formatDate"
+          width="160">
+        </el-table-column>
+        <el-table-column
+          prop="issueTime"
+          label="发出时间"
+          :formatter="formatDate"
+          width="160">
+        </el-table-column>
+        <el-table-column
+          label="操作" align="center" width="260">
+          <template slot-scope="scope">
+            <el-button type="text" size="small" @click="lookTenderinformBtn(scope)">查看</el-button>
+            <el-button type="text" size="small" v-if="(scope.row.auditStatus === 2 || scope.row.auditStatus === 4) && operationFlag && tradingPlatformFlag" @click="publishTenderinformBtn(scope)">发出</el-button>
+            <el-button type="text" size="small" v-if="(scope.row.auditStatus === 0 || scope.row.auditStatus === 3 || scope.row.auditStatus === 5) && operationFlag" @click="updateTenderinformBtn(scope)">编辑</el-button>
+            <el-button type="text" size="small" v-if="(scope.row.auditStatus === 0) && operationFlag" @click="delTenderinformBtn(scope)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <!--分页-->
+      <el-pagination
+        background
+        layout="prev, pager, next"
+        :total="total5"
+        :page-size='pageSize5'
+        :current-page.sync="currentPage5"
+        @current-change="handleCurrentChange5">
+      </el-pagination>
+      <!--分页-->
+    </div>
+    <div class="box">
+      <div class="topmain">
+        退还保证金
+      </div>
+      <el-table
+        :data="tableData6"
+        header-cell-class-name="tableheader"
+        border>
+        <el-table-column
+          type="index"
+          label="序号"
+          :index="indexMethod6"
+          width="50">
+        </el-table-column>
+        <el-table-column
+          prop="bidderName"
+          label="投标人"
+          show-overflow-tooltip>
+        </el-table-column>
+        <el-table-column
+          prop="amount"
+          label="缴费金额(元)"
+          show-overflow-tooltip>
+        </el-table-column>
+        <el-table-column
+          prop="paymentMethod"
+          label="缴费方式"
+          width="90">
+          <template slot-scope="scope">
+            <span  v-if="scope.row.paymentMethod === 1">支付宝</span>
+            <span  v-if="scope.row.paymentMethod === 2">微信</span>
+            <span  v-if="scope.row.paymentMethod === 3">现金</span>
+            <span  v-if="scope.row.paymentMethod === 4">银联</span>
+            <span  v-if="scope.row.paymentMethod === 5">支票</span>
+            <span  v-if="scope.row.paymentMethod === 6">保函</span>
+            <span  v-if="scope.row.paymentMethod === 9">其他</span>
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="refundAmount"
+          label="退还状态"
+          width="120">
+          <template slot-scope="scope">
+            <span  v-if="scope.row.refundAmount">已退还</span>
+            <span  v-if="!scope.row.refundAmount">----</span>
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="auditStatus"
+          label="提交状态"
+          width="120">
+          <template slot-scope="scope">
+            <span  v-if="scope.row.auditStatus === 0">已保存</span>
+            <span  v-if="scope.row.auditStatus === 1">待审批</span>
+            <span  v-if="scope.row.auditStatus === 2">已审批</span>
+            <span  v-if="scope.row.auditStatus === 3">已驳回</span>
+            <span  v-if="scope.row.auditStatus === 4">已提交</span>
+            <span  v-if="scope.row.auditStatus === 5">已撤回</span>
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="paymentTime"
+          label="缴费时间"
+          :formatter="formatDate"
+          width="160">
+        </el-table-column>
+        <el-table-column
+          prop="submitter"
+          label="提交人"
+          :formatter="simpleFormatData"
+          width="140">
+        </el-table-column>
+        <el-table-column
+          prop="submitTime"
+          label="提交时间"
+          :formatter="formatDate"
+          width="160">
+        </el-table-column>
+        <el-table-column
+          label="操作" align="center" width="260">
+          <template slot-scope="scope">
+            <el-button type="text" size="small" @click="lookReturnBondBtn(scope)">查看</el-button>
+            <el-button type="text" size="small" v-if="scope.row.auditStatus === 0 || scope.row.auditStatus === 3 || scope.row.auditStatus === 5" @click="updateReturnBondBtn(scope)">{{scope.row.refundAmount ? '编辑' : '退还'}}</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <!--分页-->
+      <el-pagination
+        background
+        layout="prev, pager, next"
+        :total="total6"
+        :page-size='pageSize6'
+        :current-page.sync="currentPage6"
+        @current-change="handleCurrentChange6">
+      </el-pagination>
+      <!--分页-->
+    </div>
+  </div>
+</template>
+<script>
+import {bulletinInfo, questionAndAnswerInfo, resultInfo, costInfo, winBiddingConfirmationLetter} from '@/api/project/'
+import {dateFormat} from '@/assets/js/common'
+export default {
+  components: {
+  },
+  props: ['tenderSystemCode', 'sectionSystemCode', 'operationFlag', 'type'],
+  data () {
+    return {
+      // 中标候选人公示
+      publicTable: [],
+      // 中标候选人公示  分页
+      publicCurrentPage: 1,
+      publicPageNo: 0,
+      publicTotal: 100, // 总条数
+      publicPageSize: 10, // 每页展示条数
+      // 中标候选人公示疑义及澄清
+      tableData2: [],
+      // 中标候选人公示疑义及澄清  分页
+      currentPage2: 1,
+      pageNo2: 0,
+      total2: null, // 总条数
+      pageSize2: 10, // 每页展示条数
+      // 中标确认函  分页
+      winbidOkData: [],
+      currentPageWinbidOk: 1,
+      pageNoWinbidOk: 0,
+      totalWinbidOk: null, // 总条数
+      pageSizeWinbidOk: 10, // 每页展示条数
+      // 中标结果公告
+      winbidNoticeTable: [],
+      // 中标结果公告  分页
+      noticeCurrentPage: 1,
+      noticePageNo: 0,
+      noticeTotal: 100, // 总条数
+      noticePageSize: 10, // 每页展示条数
+      // 中标结果公告质疑及回复  分页
+      winbidNoticeObjectionTable: [],
+      noticeObjectionCurrentPage: 1,
+      noticeObjectionPageNo: 0,
+      noticeObjectionTotal: null, // 总条数
+      noticeObjectionPageSize: 10, // 每页展示条数
+      // 中标通知书
+      tableData4: [],
+      // 中标通知书  分页
+      currentPage4: 1,
+      pageNo4: 0,
+      total4: null, // 总条数
+      pageSize4: 10, // 每页展示条数
+      // 招标结果通知书
+      tableData5: [],
+      // 招标结果通知书  分页
+      currentPage5: 1,
+      pageNo5: 0,
+      total5: null, // 总条数
+      pageSize5: 10, // 每页展示条数
+      // 退还保证金
+      tableData6: [],
+      // 退还保证金  分页
+      currentPage6: 1,
+      pageNo6: 0,
+      total6: null, // 总条数
+      pageSize6: 10, // 每页展示条数
+      tradingPlatformFlag: this.$store.getters.authUser.tradingPlatformFlag,
+      checkDataSource: this.$store.getters.authUser.tradingPlatformFlag // 默认不需要推送，推送则为true
+    }
+  },
+  methods: {
+    // 普通格式化数据，空的时候展示"---"
+    simpleFormatData (row, col, cellValue) {
+      return cellValue || '---'
+    },
+    // 格式化时间
+    formatDate (row, col, cellValue) {
+      return cellValue ? dateFormat(cellValue, 'yyyy-MM-dd hh:mm:ss') : '---'
+    },
+    /** 中标确认函枚举 */
+    filterChangeNums (row, col, cellValue) {
+      if (Number(cellValue) === 0) {
+        return '首次'
+      }
+    },
+    // 中标候选人公示
+    // 查看
+    lookWinbidpublicBtn (scope) {
+      this.$router.push({path: `/project/projectProcess/project/process/calibrationResult/winbidpublic/detail/${scope.row.code}`, query: {sectionSystemCode: this.sectionSystemCode}})
+    },
+    // 发布
+    publishWinbidpublicBtn (scope) {
+      bulletinInfo.releaseBulletin(scope.row.code).then((res) => {
+        if (res.data.resCode === '0000') {
+          this.getPublicList()
+        }
+      })
+    },
+    // 添加
+    addWinbidpublicBtn () {
+      this.$router.push({path: `/project/projectProcess/project/process/calibrationResult/winbidpublic/add`, query: {sectionSystemCode: this.sectionSystemCode, tenderSystemCode: this.tenderSystemCode}})
+    },
+    // 编辑
+    updateWinbidpublicBtn (scope) {
+      this.$router.push({path: `/project/projectProcess/project/process/calibrationResult/winbidpublic/update`, query: {code: scope.row.code, sectionSystemCode: this.sectionSystemCode, tenderSystemCode: this.tenderSystemCode}})
+    },
+    // 删除
+    delWinbidpublicBtn (scope) {
+      this.$confirm('确认删除吗?', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'error'
+      }).then(() => {
+        // **
+        bulletinInfo.delete(scope.row.objectId).then((res) => {
+          if (res.data.resCode === '0000') {
+            this.getPublicList()
+          }
+        })
+      }).catch(() => {
+        return false
+      })
+    },
+
+    // 中标候选人疑义及澄清公示
+    // 查看
+    lookWinbidclearBtn (scope) {
+      this.$router.push({path: `/project/projectProcess/project/process/calibrationResult/winbidclear/detail/${scope.row.objectId}`})
+    },
+    // 添加
+    addWinbidclearBtn () {
+      this.$router.push({path: `/project/projectProcess/project/process/calibrationResult/winbidclear/add`,
+        query: {sectionSystemCode: this.sectionSystemCode,
+          tenderSystemCode: this.tenderSystemCode}})
+    },
+    // 编辑
+    updateWinbidclearBtn (scope) {
+      this.$router.push({path: `/project/projectProcess/project/process/calibrationResult/winbidclear/update`,
+        query: {objectId: scope.row.objectId, tenderSystemCode: this.tenderSystemCode}})
+    },
+    // 澄清
+    clearWinbidclearBtn (scope) {
+      this.$router.push({path: `/project/projectProcess/project/process/calibrationResult/winbidclear/update`,
+        query: {objectId: scope.row.objectId, tenderSystemCode: this.tenderSystemCode}})
+    },
+    // 删除
+    delWinbidclearBtn (scope) {
+      this.$confirm('确认删除吗?', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'error'
+      }).then(() => {
+        questionAndAnswerInfo.deleteById(scope.row.objectId).then(() => {
+          this.getQuesAndAnsInfoList()
+        })
+      }).catch(() => {
+        return false
+      })
+    },
+    handleCurrentChange2 (nowNum) {
+      this.currentPage2 = nowNum
+      this.pageNo2 = (nowNum - 1) * this.pageSize2
+      this.getQuesAndAnsInfoList()
+    },
+    indexMethod2 (index) {
+      return index + (this.currentPage2 - 1) * this.pageSize2 + 1
+    },
+    getQuesAndAnsInfoList () {
+      let query = {
+        pageNo: this.pageNo2,
+        pageSize: this.pageSize2,
+        tenderSystemCode: this.tenderSystemCode,
+        sectionSystemCode: this.sectionSystemCode,
+        enterpriseId: this.$store.getters.authUser.enterpriseId,
+        type: 4
+      }
+      questionAndAnswerInfo.getList(query).then(res => {
+        let data = res.data.questionAndAnswerInfoList
+        if (data) {
+          this.tableData2 = data.list
+          this.total2 = data.total
+        }
+        this.$emit('checkFlowStatusFlag', this.type)
+      })
+    },
+    // 中标确认函-查看
+    lookWinbidOkBtn (scope) {
+      this.$router.push({path: `/project/projectProcess/project/process/calibrationResult/winbidOk/detail/${scope.row.code}`})
+    },
+    // 中标确认函-编辑
+    updateWinbidOkBtn (scope) {
+      this.$router.push({path: `/project/projectProcess/project/process/calibrationResult/winbidOk/add`, query: {code: scope.row.code}})
+    },
+    // 中标确认函-删除
+    delWinbidOkBtn (scope) {
+      this.$confirm('确认删除吗?', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'error'
+      }).then(() => {
+        winBiddingConfirmationLetter.delete(scope.row.objectId).then((res) => {
+          if (res.data.resCode === '0000') {
+            this.getLetterList()
+          }
+        })
+      }).catch(() => {
+        return false
+      })
+    },
+    // 添加
+    addWinbidOkBtn () {
+      this.$router.push({path: `/project/projectProcess/project/process/calibrationResult/winbidOk/add`,
+        query: {sectionSystemCode: this.sectionSystemCode,
+          tenderSystemCode: this.tenderSystemCode}})
+    },
+    handleCurrentChangeWinbidOk (nowNum) {
+      this.currentPageWinbidOk = nowNum
+      this.pageNoWinbidOk = (nowNum - 1) * this.pageSizeWinbidOk
+      this.getQuesAndAnsInfoList()
+    },
+    indexMethodWinbidOk (index) {
+      return index + (this.currentPageWinbidOk - 1) * this.pageSizeWinbidOk + 1
+    },
+    // 中标结果公告
+    // 查看
+    lookWinbidnoticeBtn (scope) {
+      this.$router.push({path: `/project/projectProcess/project/process/calibrationResult/winbidnotice/detail/${scope.row.code}`, query: {sectionSystemCode: this.sectionSystemCode}})
+    },
+    // 发出
+    publishWinbidnoticeBtn (scope) {
+      bulletinInfo.releaseBulletin(scope.row.code).then((res) => {
+        if (res.data.resCode === '0000') {
+          this.getNoticeList()
+        }
+      })
+    },
+    // 添加
+    addWinbidnoticeBtn () {
+      this.$router.push({path: `/project/projectProcess/project/process/calibrationResult/winbidnotice/add`,
+        query: {tenderSystemCode: this.tenderSystemCode,
+          sectionSystemCode: this.sectionSystemCode}})
+    },
+    // 编辑
+    updateWinbidnoticeBtn (scope) {
+      this.$router.push({path: `/project/projectProcess/project/process/calibrationResult/winbidnotice/update`, query: {code: scope.row.code, sectionSystemCode: this.sectionSystemCode, tenderSystemCode: this.tenderSystemCode}})
+    },
+    // 删除
+    delWinbidnoticeBtn (scope) {
+      this.$confirm('确认删除吗?', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'error'
+      }).then(() => {
+        // **
+        bulletinInfo.delete(scope.row.objectId).then((res) => {
+          if (res.data.resCode === '0000') {
+            this.getNoticeList()
+          }
+        })
+      }).catch(() => {
+        return false
+      })
+    },
+    // 中标结果公告质疑及回复
+    getWinbidNoticeObjectionTableList () {
+      let query = {
+        pageNo: this.noticeObjectionPageNo,
+        pageSize: this.noticeObjectionPageSize,
+        tenderSystemCode: this.tenderSystemCode,
+        sectionSystemCode: this.sectionSystemCode,
+        enterpriseId: this.$store.getters.authUser.enterpriseId,
+        type: 8
+      }
+      questionAndAnswerInfo.getList(query).then(res => {
+        let data = res.data.questionAndAnswerInfoList
+        if (data) {
+          this.winbidNoticeObjectionTable = data.list
+          this.noticeObjectionTotal = data.total
+        }
+        this.$emit('checkFlowStatusFlag', this.type)
+      })
+    },
+    // 查看
+    lookWinbidnoticeObjectionBtn (scope) {
+      this.$router.push({path: `/project/projectProcess/project/process/calibrationResult/winbidnoticeObjection/detail/${scope.row.objectId}`, query: {sectionSystemCode: this.sectionSystemCode}})
+    },
+    // 编辑
+    updateWinbidnoticeObjectionBtn (scope) {
+      this.$router.push({path: `/project/projectProcess/project/process/calibrationResult/winbidnoticeObjection/add`,
+        query: {objectId: scope.row.objectId, tenderSystemCode: this.tenderSystemCode, sectionSystemCode: this.sectionSystemCode}})
+    },
+    // 删除
+    delWinbidnoticeObjectionBtn (scope) {
+      this.$confirm('确认删除吗?', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'error'
+      }).then(() => {
+        // **
+        questionAndAnswerInfo.deleteById(scope.row.objectId).then((res) => {
+          if (res.data.resCode === '0000') {
+            this.getWinbidNoticeObjectionTableList()
+          }
+        })
+      }).catch(() => {
+        return false
+      })
+    },
+    // 回复
+    replyWinbidnoticeObjectionBtn (scope) {
+      this.$router.push({path: `/project/projectProcess/project/process/calibrationResult/winbidnoticeObjection/reply/${scope.row.objectId}`})
+    },
+    // 添加
+    addWinbidnoticeObjectionBtn () {
+      this.$router.push({path: `/project/projectProcess/project/process/calibrationResult/winbidnoticeObjection/add`,
+        query: {tenderSystemCode: this.tenderSystemCode,
+          sectionSystemCode: this.sectionSystemCode}})
+    },
+    // 中标通知书
+    // 查看
+    lookWinbidinformBtn (scope) {
+      this.$router.push({path: `/project/projectProcess/project/process/calibrationResult/winbidinform/detail/${scope.row.objectId}`})
+    },
+    // 发出
+    publishWinbidinformBtn (scope) {
+      resultInfo.gdIssue(scope.row.objectId).then(res => {
+        this.getResultInfoList()
+      })
+    },
+    // 添加
+    addWinbidinformBtn () {
+      this.$router.push({path: `/project/projectProcess/project/process/calibrationResult/winbidinform/add`,
+        query: {sectionSystemCode: this.sectionSystemCode,
+          tenderSystemCode: this.tenderSystemCode}
+      })
+    },
+    // 编辑
+    updateWinbidinformBtn (scope) {
+      this.$router.push({path: `/project/projectProcess/project/process/calibrationResult/winbidinform/update`,
+        query: {objectId: scope.row.objectId, tenderSystemCode: this.tenderSystemCode}})
+    },
+    handleCurrentChange4 (nowNum) {
+      this.currentPage4 = nowNum
+      this.pageNo4 = (nowNum - 1) * this.pageSize4
+      this.getResultInfoList()
+    },
+    indexMethod4 (index) {
+      return index + (this.currentPage4 - 1) * this.pageSize4 + 1
+    },
+    // 删除
+    delWinbidinformBtn (scope) {
+      this.$confirm('确认删除吗?', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'error'
+      }).then(() => {
+        resultInfo.deleteById(scope.row.objectId).then(res => {
+          this.getResultInfoList()
+        })
+      }).catch(() => {
+        return false
+      })
+    },
+    getResultInfoList () {
+      let query = {
+        pageNo: this.pageNo4,
+        pageSize: this.pageSize4,
+        tenderSystemCode: this.tenderSystemCode,
+        sectionSystemCode: this.sectionSystemCode,
+        enterpriseId: this.$store.getters.authUser.enterpriseId,
+        type: 5
+      }
+      resultInfo.getList(query).then(res => {
+        let data = res.data.resultInfoList
+        if (data) {
+          this.tableData4 = data.list
+          this.total4 = data.total
+        }
+        this.$emit('checkFlowStatusFlag', this.type)
+      })
+    },
+    // 招标结果通知书
+    // 查看
+    lookTenderinformBtn (scope) {
+      this.$router.push({path: `/project/projectProcess/project/process/calibrationResult/tenderinform/detail/${scope.row.objectId}`})
+    },
+    // 发出
+    publishTenderinformBtn (scope) {
+      resultInfo.gdIssue(scope.row.objectId).then(res => {
+        this.getResultInfos()
+      })
+    },
+    // 添加
+    addTenderinformBtn () {
+      this.$router.push({path: `/project/projectProcess/project/process/calibrationResult/tenderinform/add`,
+        query: {sectionSystemCode: this.sectionSystemCode,
+          tenderSystemCode: this.tenderSystemCode}})
+    },
+    // 编辑
+    updateTenderinformBtn (scope) {
+      this.$router.push({path: `/project/projectProcess/project/process/calibrationResult/tenderinform/update`,
+        query: {objectId: scope.row.objectId, tenderSystemCode: this.tenderSystemCode}})
+    },
+    handleCurrentChange5 (nowNum) {
+      this.currentPage5 = nowNum
+      this.pageNo5 = (nowNum - 1) * this.pageSize5
+      this.getResultInfos()
+    },
+    indexMethod5 (index) {
+      return index + (this.currentPage5 - 1) * this.pageSize5 + 1
+    },
+    // 删除
+    delTenderinformBtn (scope) {
+      this.$confirm('确认删除吗?', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'error'
+      }).then(() => {
+        resultInfo.deleteById(scope.row.objectId).then(res => {
+          this.getResultInfos()
+        })
+      }).catch(() => {
+        return false
+      })
+    },
+    getResultInfos () {
+      let query = {
+        pageNo: this.pageNo5,
+        pageSize: this.pageSize5,
+        tenderSystemCode: this.tenderSystemCode,
+        sectionSystemCode: this.sectionSystemCode,
+        enterpriseId: this.$store.getters.authUser.enterpriseId,
+        type: 6
+      }
+      resultInfo.getList(query).then(res => {
+        let data = res.data.resultInfoList
+        if (data) {
+          this.tableData5 = data.list
+          this.total5 = data.total
+        }
+        this.$emit('checkFlowStatusFlag', this.type)
+      })
+    },
+    // 退还保证金
+    // 查看
+    lookReturnBondBtn (scope) {
+      this.$router.push({path: `/project/projectProcess/project/process/calibrationResult/returnbond/detail/${scope.row.objectId}`})
+    },
+    // 添加
+    addReturnBondBtn () {
+      this.$router.push({path: `/project/projectProcess/project/process/calibrationResult/returnbond/add`,
+        query: {sectionSystemCode: this.sectionSystemCode,
+          tenderSystemCode: this.tenderSystemCode}})
+    },
+    // 编辑
+    updateReturnBondBtn (scope) {
+      this.$router.push({path: `/project/projectProcess/project/process/calibrationResult/returnbond/update`, query: {objectId: scope.row.objectId}})
+    },
+    handleCurrentChange6 (nowNum) {
+      this.currentPage6 = nowNum
+      this.pageNo6 = (nowNum - 1) * this.pageSize6
+      this.getCostInfoList()
+    },
+    indexMethod6 (index) {
+      return index + (this.currentPage6 - 1) * this.pageSize6 + 1
+    },
+    getCostInfoList () {
+      let query = {
+        pageNo: this.pageNo6,
+        pageSize: this.pageSize6,
+        tenderSystemCode: this.tenderSystemCode,
+        sectionSystemCode: this.sectionSystemCode,
+        enterpriseId: this.$store.getters.authUser.enterpriseId,
+        type: 4
+      }
+      costInfo.getList(query).then(res => {
+        let data = res.data.costInfoList
+        if (data) {
+          this.tableData6 = data.list
+          this.total6 = data.total
+        }
+        this.$emit('checkFlowStatusFlag', this.type)
+      })
+    },
+    handleCurrentChange () {
+    },
+    publicTableIndexMethod (index) {
+      return index + (this.publicCurrentPage - 1) * 10 + 1
+    },
+    handlePublicCurrentChange (nowNum) {
+      this.publicCurrentPage = nowNum
+      this.publicPageNo = (nowNum - 1) * this.publicPageNo
+      this.getNoticeList()
+    },
+    noticeCurrentIndexMethod (index) {
+      return index + (this.noticeCurrentPage - 1) * 10 + 1
+    },
+    handleNoticeCurrentChange (nowNum) {
+      this.noticeCurrentPage = nowNum
+      this.noticePageNo = (nowNum - 1) * this.noticePageNo
+      this.getNoticeList()
+    },
+    noticeObjectionCurrentIndexMethod (index) {
+      return index + (this.noticeObjectionCurrentPage - 1) * 10 + 1
+    },
+    handleNoticeObjectionCurrentChange (nowNum) {
+      this.noticeObjectionCurrentPage = nowNum
+      this.noticeObjectionPageNo = (nowNum - 1) * this.noticeObjectionPageNo
+      this.getWinbidNoticeObjectionTableList()
+    },
+    getNoticeList () {
+      let query = {
+        pageNo: this.noticePageNo,
+        pageSize: this.noticePageSize,
+        tenderSystemCode: this.tenderSystemCode,
+        sectionSystemCode: this.sectionSystemCode,
+        type: 7
+      }
+      bulletinInfo.getList(query).then(res => {
+        let data = res.data.bulletinInfoList
+        if (data) {
+          this.winbidNoticeTable = data.list
+          this.noticeTotal = data.total
+        }
+        this.$emit('checkFlowStatusFlag', this.type)
+      })
+    },
+    getPublicList () {
+      let query = {
+        pageNo: this.publicPageNo,
+        pageSize: this.publicPageSize,
+        tenderSystemCode: this.tenderSystemCode,
+        sectionSystemCode: this.sectionSystemCode,
+        type: 6
+      }
+      bulletinInfo.getList(query).then(res => {
+        let data = res.data.bulletinInfoList
+        if (data) {
+          this.publicTable = data.list
+          this.publicTotal = data.total
+        }
+        this.$emit('checkFlowStatusFlag', this.type)
+      })
+    },
+    /** 中标确认函列表页 */
+    getLetterList () {
+      let query = {
+        pageNo: this.pageNoWinbidOk,
+        pageSize: this.pageSizeWinbidOk,
+        tenderSystemCode: this.tenderSystemCode,
+        sectionSystemCode: this.sectionSystemCode
+      }
+      winBiddingConfirmationLetter.getList(query).then(res => {
+        let data = res.data.winBiddingConfirmationLetterList
+        if (data) {
+          this.winbidOkData = data.list
+          this.totalWinbidOk = data.total
+        }
+        this.$emit('checkFlowStatusFlag', this.type)
+      })
+    },
+    init () {
+      this.getNoticeList()
+      this.getPublicList()
+      this.getQuesAndAnsInfoList()
+      this.getResultInfoList()
+      this.getResultInfos()
+      this.getCostInfoList()
+      this.getLetterList()
+      this.getQuesAndAnsInfoList()
+      this.getWinbidNoticeObjectionTableList()
+    }
+  },
+  mounted () {
+    this.init()
+  }
+}
+</script>
+<style lang="less">
+  #cloud_processtype{
+  }
+</style>

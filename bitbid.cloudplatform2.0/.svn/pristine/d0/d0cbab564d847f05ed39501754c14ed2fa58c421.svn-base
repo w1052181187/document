@@ -1,0 +1,430 @@
+<template>
+  <div class="cloudcontent">
+    <div class="main">
+      <el-form :model="updateForm" label-width="200px" :rules="rules" ref="updateForm" :validate-on-rule-change="true">
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="项目编号：">
+              <el-input v-model="bidSection.tenderProjectCode" disabled></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="项目名称：">
+              <el-input v-model="bidSection.tenderProjectName" disabled></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <!--<el-row>-->
+          <!--<el-col :span="12">-->
+            <!--<el-form-item label="标段编号：">-->
+              <!--<el-input v-model="bidSection.bidSectionCode" disabled></el-input>-->
+            <!--</el-form-item>-->
+          <!--</el-col>-->
+          <!--<el-col :span="12">-->
+            <!--<el-form-item label="标段名称：">-->
+              <!--<el-input v-model="bidSection.bidSectionName" disabled></el-input>-->
+            <!--</el-form-item>-->
+          <!--</el-col>-->
+        <!--</el-row>-->
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="文件开启方式：">
+              <span>{{updateForm.bidOpeningMethod | formatOpeningMethod}}</span>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="评审方式：">
+              <span>{{updateForm.reviewMethod | formatReviewMethod}}</span>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="评审办法：" prop="bidEvaluationMethod">
+              <el-input type="textarea" v-model="updateForm.bidEvaluationMethod"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="是否缴纳资格预审文件费用：" prop="fileCost">
+              <el-select v-model="updateForm.fileCost" placeholder="请选择" clearable>
+                <el-option label="是" value="1"></el-option>
+                <el-option label="否" value="0"></el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row v-if="Number(updateForm.fileCost) === 1">
+          <el-col :span="12">
+            <el-form-item label="收费方式：" prop="chargingMethod">
+              <span>{{updateForm.chargingMethod | formatChargingMethod}}</span>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="资格预审文件售价：" prop="tenderPrice">
+              <el-input v-model="updateForm.tenderPrice" clearable></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row v-if="Number(updateForm.fileCost) === 1">
+          <el-col :span="12">
+            <el-form-item label="发售开始时间："  prop="launchStartTime">
+              <el-date-picker
+                v-model="updateForm.launchStartTime"
+                type="datetime"
+                value-format="yyyy-MM-dd HH:mm:ss">
+              </el-date-picker>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="发售截止时间："  prop="launchEndTime">
+              <el-date-picker
+                v-model="updateForm.launchEndTime"
+                type="datetime"
+                value-format="yyyy-MM-dd HH:mm:ss">
+              </el-date-picker>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="质疑开始时间："  prop="clarificationStartTime">
+              <el-date-picker
+                v-model="updateForm.clarificationStartTime"
+                type="datetime"
+                value-format="yyyy-MM-dd HH:mm:ss">
+              </el-date-picker>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="质疑截止时间："  prop="clarificationEndTime">
+              <el-date-picker
+                v-model="updateForm.clarificationEndTime"
+                type="datetime"
+                value-format="yyyy-MM-dd HH:mm:ss">
+              </el-date-picker>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="申请有效期：" prop="termOfValidity">
+              <el-input v-model="updateForm.termOfValidity" clearable></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="资格预审会时间："  prop="prequalificationTime">
+              <el-date-picker
+                v-model="updateForm.prequalificationTime"
+                type="datetime"
+                value-format="yyyy-MM-dd HH:mm:ss">
+              </el-date-picker>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="资格预审会地点："  prop="prequalificationAddress">
+              <el-input v-model="updateForm.prequalificationAddress" clearable></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <!--<el-row>-->
+          <!--<el-col :span="24">-->
+            <!--<el-form-item label="文件发布时间："  prop="documentReleaseTime">-->
+              <!--<el-date-picker-->
+                <!--v-model="updateForm.documentReleaseTime"-->
+                <!--type="date"-->
+                <!--value-format="yyyy-MM-dd HH:mm:ss">-->
+              <!--</el-date-picker>-->
+            <!--</el-form-item>-->
+          <!--</el-col>-->
+        <!--</el-row>-->
+        <el-row>
+          <el-col :span="24">
+            <el-form-item label="标段信息：" class="bitianicon">
+              <el-table
+                :data="bidSectionList"
+                border
+                style="width: 100%" header-cell-class-name="tableheader"
+                @selection-change="handleSelectionChange">
+                <el-table-column
+                  type="selection"
+                  width="50">
+                </el-table-column>
+                <el-table-column
+                  prop="bidSectionCode"
+                  label="标段编号"
+                  show-overflow-tooltip>
+                </el-table-column>
+                <el-table-column
+                  prop="bidSectionName"
+                  label="标段名称"
+                  show-overflow-tooltip>
+                </el-table-column>
+              </el-table>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="24">
+            <el-form-item label="供应商资格条件："  prop="supplierCondition">
+              <el-input type="textarea" v-model="updateForm.supplierCondition"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="24">
+            <el-form-item label="资格预审文件：" class="bitianicon">
+              <upload-file @uploadSuccess="uploadOtherSuccess" @deleteSuccess="deleteSuccess"
+                           :fileArrays="updateForm.fileInformationList"
+                           fileMaxNum="1"
+                           fileType="9"
+                           isImage="0">
+              </upload-file>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-form-item class="submit-radio">
+          <el-button type="primary" @click="submit('updateForm', 0)" :loading="isSaving">保存</el-button>
+          <el-button type="primary" class="submitBtn" @click="submit('updateForm', 1)" :loading="isSubmiting">提交</el-button>
+          <el-button class="cancal" @click="close">取消</el-button>
+        </el-form-item>
+      </el-form>
+      <submitApproveDialog :flowStatus="flowStatus" :tenderSystemCode="$route.query.tenderSystemCode" :showVisible="approveDialogVisable" @confirmSubmit="confirmSubmit" @handleCancel="cancelApprove"></submitApproveDialog>
+    </div>
+  </div>
+</template>
+<script>
+import {bidSection, documentInfo} from '@/api/project'
+import {validMoney} from '@/assets/js/validate'
+import uploadFile from '@/components/upload/publicFileUpload'
+import submitApproveDialog from '@/pages/project/commonCompents/submitApproveDialog'
+export default {
+  components: {
+    uploadFile,
+    submitApproveDialog
+  },
+  data () {
+    return {
+      flowStatus: 5,
+      isSaving: false,
+      isSubmiting: false,
+      updateForm: {
+        prequalificationTime: null,
+        prequalificationAddress: '',
+        fileInformationList: []
+      },
+      rules: {
+        prequalificationTime: {required: true, message: '请填写资格预审会时间', trigger: 'change'},
+        prequalificationAddress: {required: true, message: '请填写资格预审会地点', trigger: 'blur'},
+        bidEvaluationMethod: {required: true, message: '请填写评审办法', trigger: 'blur'},
+        fileCost: {required: true, message: '请选择是否缴纳资格预审文件费用', trigger: 'change'},
+        tenderPrice: [
+          {required: true, message: '请填写资格预审文件售价', trigger: 'blur'},
+          {validator: validMoney, trigger: 'blur'}
+        ],
+        launchStartTime: {required: true, message: '请填写发售开始时间', trigger: 'change'},
+        launchEndTime: {required: true, message: '请填写发售截止时间', trigger: 'change'},
+        clarificationStartTime: {required: true, message: '请填写质疑开始时间', trigger: 'change'},
+        clarificationEndTime: {required: true, message: '请填写质疑截止时间', trigger: 'change'},
+        termOfValidity: {required: true, message: '请填写申请有效期', trigger: 'blur'},
+        supplierCondition: {required: true, message: '请填写供应商资格条件', trigger: 'blur'}
+      },
+      bidSectionList: [],
+      bidSection: {},
+      approveDialogVisable: false
+    }
+  },
+  filters: {
+    formatOpeningMethod (value) {
+      if (Object.is(Number(value), 1)) {
+        return '线上开启'
+      } else if (Object.is(Number(value), 2)) {
+        return '线下开启'
+      }
+    },
+    formatReviewMethod (value) {
+      if (Object.is(Number(value), 1)) {
+        return '线上评审'
+      } else if (Object.is(Number(value), 2)) {
+        return '线下评审'
+      }
+    },
+    formatChargingMethod (value) {
+      if (Object.is(Number(value), 0)) {
+        return '广东比比代收'
+      } else if (Object.is(Number(value), 1)) {
+        return '自收'
+      }
+    }
+  },
+  methods: {
+    handleSelectionChange (val) {
+      this.updateForm.bidSectionList = val
+    },
+    // 上传附件
+    uploadOtherSuccess (file) {
+      this.updateForm.fileInformationList.push(file)
+    },
+    deleteSuccess (fileId) {
+      this.updateForm.fileInformationList = this.updateForm.fileInformationList.filter(item => item.relativePath !== fileId)
+    },
+    // 提交/保存
+    submit (form, status) {
+      if (!this.updateForm.bidSectionList || this.updateForm.bidSectionList.length < 1) {
+        this.$message({
+          message: '请选择标段！',
+          type: 'warning'
+        })
+        return
+      }
+      if (this.updateForm.fileInformationList.length < 1) {
+        this.$message({
+          message: '请上传资格预审文件！',
+          type: 'warning'
+        })
+        return
+      }
+      this.$refs[form].validate((vaild) => {
+        if (vaild) {
+          if (this.updateForm.launchEndTime <= this.updateForm.launchStartTime) {
+            this.$message({
+              message: '发售截止时间不得早于或等于发售开始时间！',
+              type: 'warning'
+            })
+            return
+          }
+          if (this.updateForm.clarificationEndTime <= this.updateForm.clarificationStartTime) {
+            this.$message({
+              message: '质疑截止时间不得早于或等于质疑开始时间！',
+              type: 'warning'
+            })
+            return
+          }
+          if (this.updateForm.clarificationStartTime <= this.updateForm.launchStartTime) {
+            this.$message({
+              message: '质疑开始时间不得早于或等于发售开始时间！',
+              type: 'warning'
+            })
+            return
+          }
+          if (this.updateForm.prequalificationTime <= this.updateForm.clarificationEndTime) {
+            this.$message({
+              message: '资格预审会时间不得早于或等于质疑截止时间！',
+              type: 'warning'
+            })
+            return
+          }
+          if (Object.is(Number(this.updateForm.fileCost), 0)) {
+            this.updateForm.chargingMethod = null
+            this.updateForm.launchStartTime = null
+            this.updateForm.launchEndTime = null
+          }
+          if (Object.is(status, 0)) {
+            this.approveDialogVisable = false
+            this.submitData(status)
+          } else {
+            this.approveDialogVisable = true
+          }
+        } else {
+          return false
+        }
+      })
+    },
+    submitData (status) {
+      let msg = Object.is(status, 1) ? '提交后数据将锁定，不允许修改，确认要提交吗?' : '确定要保存吗?'
+      this.$confirm(msg, '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning',
+        beforeClose: (action, instance, done) => {
+          done()
+        }
+      }).then(() => {
+        if (Object.is(status, 0)) {
+          this.isSaving = true
+          this.updateForm.auditStatus = 0
+        } else if (Object.is(status, 1)) {
+          this.isSubmiting = true
+          this.updateForm.auditStatus = 4
+          this.updateForm.submitTime = new Date().getTime()
+        }
+        this.updateForm.tenderSystemCode = this.$route.query.tenderSystemCode
+        this.updateForm.sectionSystemCode = this.$route.query.sectionSystemCode
+        this.updateForm.type = 1
+        this.updateForm.bidOpeningTime = this.updateForm.prequalificationTime
+        this.updateForm.bidOpeningAddress = this.updateForm.prequalificationAddress
+        this.updateForm.bidSectionList.map(item => {
+          item.prequalificationTime = this.updateForm.prequalificationTime
+          item.prequalificationAddress = this.updateForm.prequalificationAddress
+        })
+        documentInfo.update(this.updateForm).then((res) => {
+          this.isSaving = false
+          this.isSubmiting = false
+          if (res.data.resCode === '0000') {
+            this.close()
+          }
+        })
+      }).catch(() => {
+        this.isSaving = false
+        this.isSubmiting = false
+        return false
+      })
+    },
+    // 确认提交
+    confirmSubmit (record) {
+      this.updateForm.approvalFlowExecutorList = []
+      this.updateForm.manualAdditionList = []
+      for (let i = 0; i < record.approveList.length; i++) {
+        let obj = {
+          usersId: record.approveList[i].objectId,
+          flowLevel: i + 1
+        }
+        this.updateForm.approvalFlowExecutorList.push(obj)
+      }
+      if (record.noticeList && record.noticeList.length > 0) {
+        this.updateForm.manualAdditionList = record.noticeList
+      }
+      this.submitData(1)
+    },
+    cancelApprove () {
+      this.approveDialogVisable = false
+    },
+    // 取消
+    close () {
+      this.$store.commit('delete_tabs', this.$route.fullPath)
+      this.$router.go(-1)
+    },
+    // 查询未关联资格预审文件的标段
+    getBidSections () {
+      let query = {
+        tenderSystemCode: this.$route.query.tenderSystemCode,
+        flowStatus: 9,
+        type: 1
+      }
+      bidSection.getNotRelation(query).then(res => {
+        this.bidSectionList = res.data.bidSectionList
+      })
+    },
+    // 查询当前标段信息
+    getBidSection () {
+      bidSection.getOne(this.$route.query.sectionSystemCode).then(res => {
+        this.bidSection = res.data.bidSection
+        this.updateForm.prequalificationTime = this.bidSection.prequalificationTime
+        this.updateForm.prequalificationAddress = this.bidSection.prequalificationAddress
+      })
+    }
+  },
+  mounted () {
+    this.updateForm.bidOpeningMethod = 2
+    this.updateForm.reviewMethod = 2
+    this.updateForm.chargingMethod = 0
+    this.getBidSection()
+    this.getBidSections()
+  }
+}
+</script>
+
+<style scoped>
+
+</style>
